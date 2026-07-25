@@ -1,0 +1,668 @@
+openapi: 3.1.0
+info:
+  title: Cognote API Outline
+  version: 0.1.0
+  description: >-
+    Stage-0 contract outline. Local record creation is a client-side operation;
+    these endpoints provide consent-bound media analysis, card retrieval, and
+    future multi-device synchronization.
+servers:
+  - url: https://api.cn.example.invalid/v1
+    description: Placeholder hostname for the cn-mainland deployment.
+tags:
+  - name: Identity
+  - name: Uploads
+  - name: AI Jobs
+  - name: Cards
+  - name: Sync
+  - name: Search
+  - name: Privacy
+paths:
+  /identity/anonymous:
+    post:
+      tags: [Identity]
+      summary: Register an anonymous principal and device
+      operationId: createAnonymousPrincipal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [principal_id, device_id, home_region]
+              properties:
+                principal_id: {$ref: '#/components/schemas/Id'}
+                device_id: {$ref: '#/components/schemas/Id'}
+                home_region: {const: cn-mainland}
+      responses:
+        '201':
+          description: Anonymous principal registered
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Principal'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /identity/merge:
+    post:
+      tags: [Identity]
+      summary: Idempotently merge an anonymous principal into the authenticated account
+      operationId: mergeAnonymousPrincipal
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [anonymous_principal_id, source_manifest_hash]
+              properties:
+                anonymous_principal_id: {$ref: '#/components/schemas/Id'}
+                source_manifest_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+      responses:
+        '202':
+          description: Merge started or existing merge returned
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PrincipalMerge'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /uploads:
+    post:
+      tags: [Uploads]
+      summary: Initialize a private upload
+      operationId: createUpload
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateUploadRequest'}
+      responses:
+        '201':
+          description: Upload initialized
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UploadSession'}
+        '403': {$ref: '#/components/responses/PolicyBlocked'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /uploads/{upload_id}/complete:
+    post:
+      tags: [Uploads]
+      summary: Verify and complete an upload
+      operationId: completeUpload
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/UploadId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sha256]
+              properties:
+                sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+      responses:
+        '200':
+          description: Asset ready
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Asset'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /ai-jobs:
+    post:
+      tags: [AI Jobs]
+      summary: Start consent-bound deterministic analysis
+      operationId: createAIJob
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateAIJobRequest'}
+      responses:
+        '202':
+          description: Job accepted or existing idempotent job returned
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AIJob'}
+        '403': {$ref: '#/components/responses/PolicyBlocked'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+  /ai-jobs/{job_id}:
+    get:
+      tags: [AI Jobs]
+      summary: Get AI job state
+      operationId: getAIJob
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/JobId'}
+      responses:
+        '200':
+          description: Current job
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AIJob'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /ai-jobs/{job_id}/cancel:
+    post:
+      tags: [AI Jobs]
+      summary: Request cooperative cancellation
+      operationId: cancelAIJob
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/JobId'}
+      responses:
+        '202':
+          description: Cancellation requested
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AIJob'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /ai-jobs/{job_id}/retry:
+    post:
+      tags: [AI Jobs]
+      summary: Retry a retryable job with a new attempt
+      operationId: retryAIJob
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/JobId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '202':
+          description: Retry accepted
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AIJob'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /cards:
+    get:
+      tags: [Cards]
+      summary: List cloud-visible cards
+      operationId: listCards
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: cursor
+          in: query
+          schema: {type: string}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 30}
+      responses:
+        '200':
+          description: Card page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, has_more]
+                properties:
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/Card'}
+                  next_cursor: {type: [string, 'null']}
+                  has_more: {type: boolean}
+  /cards/{card_id}:
+    get:
+      tags: [Cards]
+      summary: Get a card with accepted version and provenance
+      operationId: getCard
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/CardId'}
+      responses:
+        '200':
+          description: Card
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Card'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Cards]
+      summary: Update user-owned mutable fields
+      operationId: updateCard
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/CardId'}
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                user_title_override: {type: [string, 'null'], maxLength: 200}
+                user_note: {type: [string, 'null'], maxLength: 20000}
+                workflow_status: {enum: [accepted, archived]}
+      responses:
+        '200':
+          description: Updated card
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Card'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /cards/{card_id}/accept:
+    post:
+      tags: [Cards]
+      summary: Accept a card version
+      operationId: acceptCardVersion
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/CardId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [card_version_id]
+              properties:
+                card_version_id: {$ref: '#/components/schemas/Id'}
+      responses:
+        '200':
+          description: Accepted card
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Card'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /cards/{card_id}/corrections:
+    post:
+      tags: [Cards]
+      summary: Append an immutable user correction
+      operationId: createCorrection
+      security: [{bearerAuth: []}]
+      parameters:
+        - {$ref: '#/components/parameters/CardId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateCorrectionRequest'}
+      responses:
+        '201':
+          description: Correction created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserCorrection'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /sync/push:
+    post:
+      tags: [Sync]
+      summary: Idempotently apply an operation batch
+      operationId: pushSyncOperations
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, operations]
+              properties:
+                device_id: {$ref: '#/components/schemas/Id'}
+                operations:
+                  type: array
+                  maxItems: 100
+                  items: {$ref: '#/components/schemas/SyncOperation'}
+      responses:
+        '200':
+          description: Per-operation outcomes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: {$ref: '#/components/schemas/SyncResult'}
+  /sync/pull:
+    get:
+      tags: [Sync]
+      summary: Pull server-ordered changes after cursor
+      operationId: pullSyncChanges
+      security: [{bearerAuth: []}]
+      parameters:
+        - name: cursor
+          in: query
+          schema: {type: string}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 500, default: 100}
+      responses:
+        '200':
+          description: Change page
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SyncPage'}
+        '410':
+          description: Cursor expired; snapshot recovery required
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Problem'}
+  /search:
+    post:
+      tags: [Search]
+      summary: Search accepted non-private cloud cards (MVP-C)
+      operationId: searchCards
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query: {type: string, minLength: 1, maxLength: 1000}
+                filters: {type: object, additionalProperties: true}
+                cursor: {type: [string, 'null']}
+      responses:
+        '200':
+          description: Traceable results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [matches, has_more]
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      required: [card_id, snippets]
+                      properties:
+                        card_id: {$ref: '#/components/schemas/Id'}
+                        fact_ids:
+                          type: array
+                          items: {$ref: '#/components/schemas/Id'}
+                        provenance_ids:
+                          type: array
+                          items: {$ref: '#/components/schemas/Id'}
+                        snippets:
+                          type: array
+                          items: {type: string}
+                        score: {type: number}
+                  next_cursor: {type: [string, 'null']}
+                  has_more: {type: boolean}
+  /privacy/account-deletion:
+    post:
+      tags: [Privacy]
+      summary: Start an auditable account deletion job
+      operationId: requestAccountDeletion
+      security: [{bearerAuth: []}]
+      responses:
+        '202':
+          description: Deletion job accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job_id, status]
+                properties:
+                  job_id: {$ref: '#/components/schemas/Id'}
+                  status: {enum: [queued]}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-or-jwt-undecided
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 16, maxLength: 128}
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Current server revision encoded as an entity tag.
+      schema: {type: string}
+    UploadId:
+      name: upload_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Id'}
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Id'}
+    CardId:
+      name: card_id
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Id'}
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    Conflict:
+      description: Revision, state, or idempotency conflict
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    PolicyBlocked:
+      description: Consent or privacy policy blocks the operation
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    ValidationError:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/Problem'}
+  schemas:
+    Id:
+      type: string
+      format: uuid
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: {type: string, format: uri-reference}
+        title: {type: string}
+        status: {type: integer}
+        code: {type: string}
+        detail: {type: string}
+        trace_id: {type: string}
+        conflicts:
+          type: array
+          items: {type: object, additionalProperties: true}
+    CreateUploadRequest:
+      type: object
+      additionalProperties: false
+      required: [asset_id, observation_id, purpose, privacy_level, region_code, data_residency, mime_type, bytes, sha256, consent_snapshot_id]
+      properties:
+        asset_id: {$ref: '#/components/schemas/Id'}
+        observation_id: {$ref: '#/components/schemas/Id'}
+        purpose: {enum: [ai_analysis, media_backup]}
+        privacy_level: {enum: [normal]}
+        region_code: {const: cn-mainland}
+        data_residency: {const: cn}
+        mime_type: {type: string}
+        bytes: {type: integer, minimum: 1}
+        width: {type: [integer, 'null'], minimum: 1}
+        height: {type: [integer, 'null'], minimum: 1}
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        exif_removed: {type: boolean}
+        consent_snapshot_id: {$ref: '#/components/schemas/Id'}
+    UploadSession:
+      type: object
+      required: [upload_id, asset_id, method, upload_url, expires_at]
+      properties:
+        upload_id: {$ref: '#/components/schemas/Id'}
+        asset_id: {$ref: '#/components/schemas/Id'}
+        method: {enum: [PUT, multipart]}
+        upload_url: {type: string, format: uri}
+        expires_at: {type: string, format: date-time}
+    Asset:
+      type: object
+      required: [id, observation_id, derivative_kind, upload_status, sha256]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        observation_id: {$ref: '#/components/schemas/Id'}
+        derivative_kind: {enum: [analysis, backup, thumbnail]}
+        upload_status: {enum: [pending, uploaded, verified, deleted]}
+        sha256: {type: string}
+        expires_at: {type: [string, 'null'], format: date-time}
+    CreateAIJobRequest:
+      type: object
+      additionalProperties: false
+      required: [observation_id, input_asset_ids, pipeline_version, region_code, data_residency, ai_processing_region, consent_snapshot_id]
+      properties:
+        observation_id: {$ref: '#/components/schemas/Id'}
+        input_asset_ids:
+          type: array
+          maxItems: 8
+          items: {$ref: '#/components/schemas/Id'}
+        pipeline_version: {type: string}
+        region_code: {const: cn-mainland}
+        data_residency: {const: cn}
+        ai_processing_region: {const: cn-mainland}
+        consent_snapshot_id: {$ref: '#/components/schemas/Id'}
+    AIJob:
+      type: object
+      required: [id, observation_id, status, current_stage, pipeline_version, created_at, updated_at]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        observation_id: {$ref: '#/components/schemas/Id'}
+        status:
+          enum: [queued, preparing, processing, validating, awaiting_confirmation, accepted, failed_retryable, failed_terminal, needs_review, cancelled]
+        current_stage: {type: string}
+        pipeline_version: {type: string}
+        region_code: {const: cn-mainland}
+        data_residency: {const: cn}
+        ai_processing_region: {const: cn-mainland}
+        latest_card_version_id:
+          oneOf:
+            - {$ref: '#/components/schemas/Id'}
+            - {type: 'null'}
+        error_code: {type: [string, 'null']}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    Card:
+      type: object
+      required: [id, observation_id, workflow_status, schema_version, server_revision]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        observation_id: {$ref: '#/components/schemas/Id'}
+        accepted_version_id:
+          oneOf:
+            - {$ref: '#/components/schemas/Id'}
+            - {type: 'null'}
+        workflow_status: {enum: [draft, accepted, archived]}
+        schema_version: {type: string}
+        server_revision: {type: integer, minimum: 0}
+        effective_content: {type: object, additionalProperties: true}
+        provenance:
+          type: array
+          items: {$ref: '#/components/schemas/Provenance'}
+    Provenance:
+      type: object
+      required: [id, type]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        type: {enum: [visual_observation, ocr_extract, user_input, retrieved_source, model_inference, user_correction]}
+        source_url: {type: [string, 'null'], format: uri}
+        quote_or_visual_description: {type: [string, 'null']}
+        retrieved_at: {type: [string, 'null'], format: date-time}
+    CreateCorrectionRequest:
+      type: object
+      additionalProperties: false
+      required: [target_card_version_id, field_path, original_value, corrected_value]
+      properties:
+        target_card_version_id: {$ref: '#/components/schemas/Id'}
+        target_fact_id:
+          oneOf:
+            - {$ref: '#/components/schemas/Id'}
+            - {type: 'null'}
+        field_path: {type: string, minLength: 1, maxLength: 500}
+        original_value: {}
+        corrected_value: {}
+        reason: {type: [string, 'null'], maxLength: 2000}
+    UserCorrection:
+      allOf:
+        - {$ref: '#/components/schemas/CreateCorrectionRequest'}
+        - type: object
+          required: [id, card_id, created_at, server_revision]
+          properties:
+            id: {$ref: '#/components/schemas/Id'}
+            card_id: {$ref: '#/components/schemas/Id'}
+            created_at: {type: string, format: date-time}
+            server_revision: {type: integer, minimum: 0}
+    SyncOperation:
+      type: object
+      additionalProperties: false
+      required: [operation_id, entity_type, entity_id, operation_kind, patch]
+      properties:
+        operation_id: {$ref: '#/components/schemas/Id'}
+        entity_type: {type: string}
+        entity_id: {$ref: '#/components/schemas/Id'}
+        operation_kind: {enum: [create, patch, delete, restore, tag_add, tag_remove]}
+        base_revision: {type: [integer, 'null'], minimum: 0}
+        patch: {type: object, additionalProperties: true}
+        client_created_at: {type: string, format: date-time}
+    SyncResult:
+      type: object
+      required: [operation_id, outcome]
+      properties:
+        operation_id: {$ref: '#/components/schemas/Id'}
+        outcome: {enum: [applied, duplicate, conflict, rejected]}
+        server_revision: {type: [integer, 'null'], minimum: 0}
+        current_entity: {type: [object, 'null'], additionalProperties: true}
+        problem:
+          oneOf:
+            - {$ref: '#/components/schemas/Problem'}
+            - {type: 'null'}
+    ServerChange:
+      type: object
+      required: [server_revision, entity_type, entity_id, operation_id, changed_fields, server_created_at]
+      properties:
+        server_revision: {type: integer, minimum: 1}
+        entity_type: {type: string}
+        entity_id: {$ref: '#/components/schemas/Id'}
+        operation_id: {$ref: '#/components/schemas/Id'}
+        changed_fields: {type: object, additionalProperties: true}
+        server_created_at: {type: string, format: date-time}
+    SyncPage:
+      type: object
+      required: [changes, next_cursor, has_more]
+      properties:
+        changes:
+          type: array
+          items: {$ref: '#/components/schemas/ServerChange'}
+        next_cursor: {type: string}
+        has_more: {type: boolean}
+    Principal:
+      type: object
+      required: [id, kind, home_region, data_residency, status, created_at]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        kind: {enum: [anonymous, account]}
+        home_region: {const: cn-mainland}
+        data_residency: {const: cn}
+        status: {enum: [active, merging, merged, disabled]}
+        created_at: {type: string, format: date-time}
+    PrincipalMerge:
+      type: object
+      required: [id, anonymous_principal_id, account_principal_id, status, created_at]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        anonymous_principal_id: {$ref: '#/components/schemas/Id'}
+        account_principal_id: {$ref: '#/components/schemas/Id'}
+        status: {enum: [queued, processing, completed, failed]}
+        source_manifest_hash: {type: string}
+        result_manifest_hash: {type: [string, 'null']}
+        created_at: {type: string, format: date-time}
+        completed_at: {type: [string, 'null'], format: date-time}
