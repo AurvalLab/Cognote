@@ -5,6 +5,10 @@ import 'package:cognote/src/database/cognote_database.dart';
 import 'package:cognote/src/identity/domain/device_identity.dart' as domain;
 import 'package:cognote/src/identity/domain/identity_repository.dart';
 import 'package:cognote/src/identity/domain/principal.dart' as domain;
+
+import 'package:cognote/src/observation/domain/observation.dart'
+    as observation_domain;
+import 'package:cognote/src/observation/domain/observation_id_generator.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -107,6 +111,47 @@ void main() {
 
     expect(database.closeCount, 1);
   });
+
+  test('prepares and creates text with the initialized identity', () async {
+    final database = CognoteDatabase(NativeDatabase.memory());
+    final application = await CognoteApplication.bootstrap(
+      databaseFactory: () => database,
+      observationIdGenerator: const _FixedObservationIdGenerator(),
+      utcNow: () => DateTime.utc(2026, 7, 26, 10),
+    );
+    try {
+      final command = application.prepareTextObservation(
+        rawText: 'text',
+        timezoneOffset: 480,
+      );
+      final result = await application.createTextObservation(command);
+
+      expect(command.observationId, _observationId);
+      expect(result, isA<observation_domain.Observation>());
+      expect(result.ownerId, application.localIdentity.principal.id);
+      expect(result.createdByDeviceId, application.localIdentity.device.id);
+    } finally {
+      await application.close();
+    }
+  });
+
+  test('creation after close propagates the database error', () async {
+    final application = await CognoteApplication.bootstrap(
+      databaseFactory: () => CognoteDatabase(NativeDatabase.memory()),
+      observationIdGenerator: const _FixedObservationIdGenerator(),
+      utcNow: () => DateTime.utc(2026, 7, 26, 10),
+    );
+    final command = application.prepareTextObservation(
+      rawText: 'text',
+      timezoneOffset: 480,
+    );
+    await application.close();
+
+    await expectLater(
+      application.createTextObservation(command),
+      throwsA(anything),
+    );
+  });
 }
 
 class _TrackingDatabase extends CognoteDatabase {
@@ -142,6 +187,15 @@ LocalIdentity _identity(String suffix) {
       lastSeenAt: createdAt,
     ),
   );
+}
+
+const _observationId = '018f9999-9999-7999-8999-999999999999';
+
+class _FixedObservationIdGenerator implements ObservationIdGenerator {
+  const _FixedObservationIdGenerator();
+
+  @override
+  String generate() => _observationId;
 }
 
 Future<void> _deleteDirectoryWhenReleased(Directory directory) async {
