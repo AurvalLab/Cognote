@@ -7,10 +7,14 @@ import 'package:path_provider/path_provider.dart';
 
 import '../identity/data/tables/device_identities.dart';
 import '../identity/data/tables/principals.dart';
+import '../observation/data/tables/local_assets.dart';
+import '../observation/data/tables/observations.dart';
 
 part 'cognote_database.g.dart';
 
-@DriftDatabase(tables: [Principals, DeviceIdentities])
+@DriftDatabase(
+  tables: [Principals, DeviceIdentities, Observations, LocalAssets],
+)
 class CognoteDatabase extends _$CognoteDatabase {
   CognoteDatabase(super.executor);
 
@@ -26,7 +30,7 @@ class CognoteDatabase extends _$CognoteDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -38,6 +42,12 @@ class CognoteDatabase extends _$CognoteDatabase {
         "ON principals (kind, status) "
         "WHERE kind = 'anonymous' AND status = 'active'",
       );
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.createTable(observations);
+        await migrator.createTable(localAssets);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

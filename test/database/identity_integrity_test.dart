@@ -77,12 +77,12 @@ void main() {
     expect(await database.select(database.deviceIdentities).get(), isEmpty);
   });
 
-  test('database starts at schema version 1', () async {
+  test('database starts at current schema version', () async {
     await database.customSelect('SELECT 1').getSingle();
 
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.read<int>('user_version'), 1);
+    expect(version.read<int>('user_version'), 2);
   });
 }
