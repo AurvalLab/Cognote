@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../database/cognote_database.dart' as drift;
+import '../domain/image_observation_exceptions.dart';
+import '../domain/local_asset.dart';
 import '../domain/observation.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_repository.dart';
@@ -35,6 +37,60 @@ class DriftObservationRepository implements ObservationRepository {
       }
       return observation;
     });
+  }
+
+  @override
+  Future<ImageObservationAggregate> createImage(
+    ImageObservationAggregate aggregate,
+  ) {
+    return _database.transaction(() async {
+      final existingObservation = await _findById(aggregate.observation.id);
+      if (existingObservation != null) {
+        _resolveExisting(existingObservation, aggregate.observation);
+        final existing = await findImageByObservationId(
+          aggregate.observation.id,
+        );
+        if (existing == null ||
+            !_sameAsset(existing.localAsset, aggregate.localAsset)) {
+          throw LocalAssetIdConflictException();
+        }
+        return existing;
+      }
+      final existingAsset =
+          await (_database.select(_database.localAssets)
+                ..where((table) => table.id.equals(aggregate.localAsset.id)))
+              .getSingleOrNull();
+      if (existingAsset != null) throw LocalAssetIdConflictException();
+      await _database
+          .into(_database.observations)
+          .insert(_toCompanion(aggregate.observation));
+      await _database.localAssets.insertOne(
+        _toAssetCompanion(aggregate.localAsset),
+      );
+      return aggregate;
+    });
+  }
+
+  @override
+  Future<ImageObservationAggregate?> findImageByObservationId(String id) async {
+    final observation = await _findById(id);
+    if (observation == null) return null;
+    final row = await (_database.select(
+      _database.localAssets,
+    )..where((table) => table.observationId.equals(id))).getSingleOrNull();
+    if (row == null) return null;
+    return ImageObservationAggregate(
+      observation: observation,
+      localAsset: _assetToDomain(row),
+    );
+  }
+
+  @override
+  Future<bool> isLocalUriReferenced(String localUri) async {
+    final row = await (_database.select(
+      _database.localAssets,
+    )..where((table) => table.localUri.equals(localUri))).getSingleOrNull();
+    return row != null;
   }
 
   Future<Observation?> _findById(String id) async {
@@ -82,6 +138,55 @@ class DriftObservationRepository implements ObservationRepository {
       serverRevision: Value(observation.serverRevision),
     );
   }
+
+  drift.LocalAssetsCompanion _toAssetCompanion(LocalAsset asset) =>
+      drift.LocalAssetsCompanion.insert(
+        id: asset.id,
+        observationId: asset.observationId,
+        localUri: asset.localUri,
+        analysisDerivativeUri: Value(asset.analysisDerivativeUri),
+        localOriginalPresent: asset.localOriginalPresent,
+        mimeType: asset.mimeType,
+        bytes: asset.bytes,
+        width: Value(asset.width),
+        height: Value(asset.height),
+        sha256: asset.sha256,
+        exifRemoved: asset.exifRemoved,
+        uploadState: asset.uploadState,
+        createdAt: asset.createdAt,
+        updatedAt: asset.updatedAt,
+      );
+
+  LocalAsset _assetToDomain(drift.LocalAsset row) => LocalAsset(
+    id: row.id,
+    observationId: row.observationId,
+    localUri: row.localUri,
+    analysisDerivativeUri: row.analysisDerivativeUri,
+    localOriginalPresent: row.localOriginalPresent,
+    mimeType: row.mimeType,
+    bytes: row.bytes,
+    width: row.width,
+    height: row.height,
+    sha256: row.sha256,
+    exifRemoved: row.exifRemoved,
+    uploadState: row.uploadState,
+    createdAt: row.createdAt.toUtc(),
+    updatedAt: row.updatedAt.toUtc(),
+  );
+
+  bool _sameAsset(LocalAsset left, LocalAsset right) =>
+      left.id == right.id &&
+      left.observationId == right.observationId &&
+      left.localUri == right.localUri &&
+      left.analysisDerivativeUri == right.analysisDerivativeUri &&
+      left.localOriginalPresent == right.localOriginalPresent &&
+      left.mimeType == right.mimeType &&
+      left.bytes == right.bytes &&
+      left.width == right.width &&
+      left.height == right.height &&
+      left.sha256 == right.sha256 &&
+      left.exifRemoved == right.exifRemoved &&
+      left.uploadState == right.uploadState;
 
   Observation _toDomain(drift.Observation row) {
     return Observation(

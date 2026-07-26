@@ -222,6 +222,9 @@ class _UnusedRepository implements ObservationRepository {
   Future<Observation> create(Observation observation) {
     throw UnimplementedError();
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _RecordingRepository implements ObservationRepository {
@@ -232,6 +235,9 @@ class _RecordingRepository implements ObservationRepository {
     created = observation;
     return observation;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FailingRepository implements ObservationRepository {
@@ -241,4 +247,7 @@ class _FailingRepository implements ObservationRepository {
 
   @override
   Future<Observation> create(Observation observation) => Future.error(error);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

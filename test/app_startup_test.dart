@@ -1,14 +1,24 @@
+import 'dart:io';
+
 import 'package:cognote/src/application/cognote_application.dart';
 import 'package:cognote/src/database/cognote_database.dart';
 import 'package:cognote/src/identity/domain/device_identity.dart' as domain;
 import 'package:cognote/src/identity/domain/identity_repository.dart';
 import 'package:cognote/src/identity/domain/principal.dart' as domain;
+import 'package:cognote/src/observation/data/file_asset_storage.dart';
 import 'package:cognote/src/presentation/cognote_app.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  late Directory assetRoot;
+  setUp(() async {
+    assetRoot = await Directory.systemTemp.createTemp('cng104_widget_');
+  });
+  tearDown(() async {
+    if (await assetRoot.exists()) await assetRoot.delete(recursive: true);
+  });
   testWidgets(
     'minimal root widget mounts without initializing identity again',
     (tester) async {
@@ -20,9 +30,14 @@ void main() {
           initializationCount++;
           return _identity();
         },
+        assetStorage: FileAssetStorage(
+          root: assetRoot,
+          clock: () => DateTime.utc(2026, 7, 26),
+        ),
       );
 
       await tester.pumpWidget(CognoteApp(application: application));
+
       expect(find.byType(SizedBox), findsOneWidget);
       expect(initializationCount, 1);
 
