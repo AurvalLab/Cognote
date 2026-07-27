@@ -10,6 +10,7 @@ import '../observation/application/create_text_observation.dart';
 import '../observation/application/create_image_observation.dart';
 import '../observation/application/get_observation_detail.dart';
 import '../observation/application/watch_observation_timeline.dart';
+import '../observation/application/watch_observation_search.dart';
 import '../observation/data/drift_observation_repository.dart';
 import '../observation/data/file_asset_storage.dart';
 import '../observation/data/uuid_v7_observation_id_generator.dart';
@@ -17,6 +18,7 @@ import '../observation/domain/observation.dart';
 import '../observation/domain/observation_detail.dart';
 import '../observation/domain/observation_id_generator.dart';
 import '../observation/domain/observation_mutation_outcome.dart';
+import '../observation/domain/observation_search_result.dart';
 
 typedef CognoteDatabaseFactory = CognoteDatabase Function();
 typedef IdentityInitializer =
@@ -30,6 +32,7 @@ class CognoteApplication {
     this._createTextObservation,
     this.createImageObservation,
     this._watchObservationTimeline,
+    this._watchObservationSearch,
     this._getObservationDetail,
     this._observationRepository,
     this._clock,
@@ -41,6 +44,7 @@ class CognoteApplication {
   final CreateTextObservation _createTextObservation;
   final CreateImageObservation createImageObservation;
   final WatchObservationTimeline _watchObservationTimeline;
+  final WatchObservationSearch _watchObservationSearch;
   final GetObservationDetail _getObservationDetail;
   final DriftObservationRepository _observationRepository;
   final UtcNow _clock;
@@ -95,12 +99,17 @@ class CognoteApplication {
         repository: repository,
         localIdentity: localIdentity,
       );
+      final watchObservationSearch = WatchObservationSearch(
+        repository: repository,
+        localIdentity: localIdentity,
+      );
       return CognoteApplication._(
         database,
         localIdentity,
         createTextObservation,
         createImageObservation,
         watchObservationTimeline,
+        watchObservationSearch,
         getObservationDetail,
         repository,
         utcNow ?? _utcNow,
@@ -129,6 +138,9 @@ class CognoteApplication {
   ) => _createTextObservation.execute(command);
 
   Stream<List<Observation>> watchTimeline() => _watchObservationTimeline();
+
+  Stream<List<ObservationSearchResult>> watchSearch(String query) =>
+      _watchObservationSearch(query);
 
   Future<ObservationDetail?> getObservationDetail(String observationId) =>
       _getObservationDetail(observationId);

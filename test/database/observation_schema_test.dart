@@ -14,7 +14,7 @@ void main() {
     await database.close();
   });
 
-  test('new database has schema version 2 and observations table', () async {
+  test('new database has schema version 3 and observations table', () async {
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
@@ -25,7 +25,7 @@ void main() {
         )
         .get();
 
-    expect(version.read<int>('user_version'), 2);
+    expect(version.read<int>('user_version'), 3);
     expect(tables, hasLength(1));
   });
 

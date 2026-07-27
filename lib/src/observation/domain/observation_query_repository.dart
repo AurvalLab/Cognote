@@ -1,5 +1,6 @@
 import 'observation.dart';
 import 'observation_detail.dart';
+import 'observation_search_result.dart';
 
 abstract interface class ObservationQueryRepository {
   Stream<List<Observation>> watchActiveTimeline({required String ownerId});
@@ -9,5 +10,10 @@ abstract interface class ObservationQueryRepository {
   Future<ObservationDetail?> findActiveDetail({
     required String ownerId,
     required String observationId,
+  });
+
+  Stream<List<ObservationSearchResult>> watchActiveSearch({
+    required String ownerId,
+    required String query,
   });
 }

@@ -28,6 +28,30 @@ void main() {
       if (await root.exists()) await root.delete(recursive: true);
     }
   });
+
+  test(
+    'application exposes owner-bound search and propagates database errors',
+    () async {
+      final root = await Directory.systemTemp.createTemp('cng107_app_search_');
+      final application = await CognoteApplication.bootstrap(
+        databaseFactory: () => CognoteDatabase(NativeDatabase.memory()),
+        assetStorage: FileAssetStorage(
+          root: root,
+          clock: () => DateTime.utc(2026, 7, 26),
+        ),
+      );
+      try {
+        expect(await application.watchSearch('   ').first, isEmpty);
+        await application.close();
+        await expectLater(
+          application.watchSearch('蓝雪花').first,
+          throwsA(anything),
+        );
+      } finally {
+        if (await root.exists()) await root.delete(recursive: true);
+      }
+    },
+  );
 }
 
 Future<void> _waitFor(bool Function() condition) async {

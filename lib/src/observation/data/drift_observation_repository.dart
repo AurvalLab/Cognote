@@ -10,6 +10,8 @@ import '../domain/observation_mutation_outcome.dart';
 import '../domain/observation_query_repository.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_repository.dart';
+import '../domain/observation_search_result.dart';
+import 'observation_search_query.dart';
 
 class DriftObservationRepository
     implements ObservationRepository, ObservationQueryRepository {
@@ -187,6 +189,62 @@ class DriftObservationRepository
   }
 
   @override
+  Stream<List<ObservationSearchResult>> watchActiveSearch({
+    required String ownerId,
+    required String query,
+  }) {
+    final compiled = ObservationSearchQuery.compile(query);
+    if (compiled.normalized.isEmpty) return Stream.value(const []);
+
+    final variables = <Variable<String>>[Variable.withString(ownerId)];
+    final conditions = <String>[
+      'observation.owner_id = ?',
+      'observation.deleted_at IS NULL',
+    ];
+    if (compiled.matchExpression != null) {
+      conditions.add('observation_search_fts MATCH ?');
+      variables.add(Variable.withString(compiled.matchExpression!));
+    }
+    for (final term in compiled.shortTextVariables) {
+      conditions.add(
+        "instr(lower(coalesce(observation.raw_text, '')), lower(?)) > 0",
+      );
+      variables.add(Variable.withString(term));
+    }
+    final statement =
+        '''
+      SELECT observation.*
+      FROM observations AS observation
+      ${compiled.matchExpression == null ? '' : 'JOIN observation_search_fts AS search ON search.observation_id = observation.id'}
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY observation.captured_at DESC,
+               observation.created_at DESC,
+               observation.id DESC
+    ''';
+    return _database
+        .customSelect(
+          statement,
+          variables: variables,
+          readsFrom: {_database.observations},
+        )
+        .watch()
+        .map(
+          (rows) => rows
+              .map((row) {
+                final observation = _observationFromRow(row);
+                return ObservationSearchResult(
+                  observation: observation,
+                  snippet: ObservationSearchQuery.snippet(
+                    observation.rawText ?? '',
+                    [...compiled.longTerms, ...compiled.shortTerms],
+                  ),
+                );
+              })
+              .toList(growable: false),
+        );
+  }
+
+  @override
   Future<ObservationDetail?> findActiveDetail({
     required String ownerId,
     required String observationId,
@@ -216,6 +274,25 @@ class DriftObservationRepository
       localAsset: _assetToDomain(assetRow),
     );
   }
+
+  Observation _observationFromRow(QueryRow row) => Observation(
+    id: row.read<String>('id'),
+    ownerId: row.read<String>('owner_id'),
+    inputType: _inputTypeFromDatabase(row.read<String>('input_type')),
+    rawText: row.readNullable<String>('raw_text'),
+    capturedAt: row.read<DateTime>('captured_at').toUtc(),
+    timezoneOffset: row.read<int>('timezone_offset'),
+    privacyLevel: _privacyLevelFromDatabase(row.read<String>('privacy_level')),
+    cloudAiPolicy: _cloudAiPolicyFromDatabase(
+      row.read<String>('cloud_ai_policy'),
+    ),
+    syncPolicy: _syncPolicyFromDatabase(row.read<String>('sync_policy')),
+    createdByDeviceId: row.read<String>('created_by_device_id'),
+    createdAt: row.read<DateTime>('created_at').toUtc(),
+    updatedAt: row.read<DateTime>('updated_at').toUtc(),
+    deletedAt: row.readNullable<DateTime>('deleted_at')?.toUtc(),
+    serverRevision: row.readNullable<int>('server_revision'),
+  );
 
   Future<Observation?> _findById(String id) async {
     final row = await (_database.select(

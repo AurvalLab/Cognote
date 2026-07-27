@@ -190,7 +190,7 @@ Future<void> _openAndVerifyV2(
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.read<int>('user_version'), 2);
+    expect(version.read<int>('user_version'), 3);
 
     final principal = await database
         .customSelect(

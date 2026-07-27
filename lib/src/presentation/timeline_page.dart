@@ -7,18 +7,25 @@ class TimelinePage extends StatelessWidget {
     required this.timeline,
     required this.onOpenObservation,
     required this.onOpenDeletedObservations,
+    required this.onOpenSearch,
     super.key,
   });
 
   final Stream<List<Observation>> timeline;
   final ValueChanged<String> onOpenObservation;
   final VoidCallback onOpenDeletedObservations;
+  final VoidCallback onOpenSearch;
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: const Text('时间线'),
       actions: [
+        IconButton(
+          tooltip: '搜索记录',
+          onPressed: onOpenSearch,
+          icon: const Icon(Icons.search),
+        ),
         IconButton(
           tooltip: '已删除记录',
           onPressed: onOpenDeletedObservations,

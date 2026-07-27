@@ -9,6 +9,7 @@ import 'package:cognote/src/observation/domain/observation_detail.dart';
 import 'package:cognote/src/observation/domain/observation_mutation_outcome.dart';
 import 'package:cognote/src/observation/domain/observation_query_repository.dart';
 import 'package:cognote/src/observation/domain/observation_repository.dart';
+import 'package:cognote/src/observation/domain/observation_search_result.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -54,6 +55,12 @@ class _RecordingRepository
   @override
   Stream<List<Observation>> watchDeletedTimeline({required String ownerId}) =>
       Stream.value(const []);
+
+  @override
+  Stream<List<ObservationSearchResult>> watchActiveSearch({
+    required String ownerId,
+    required String query,
+  }) => Stream.value(const []);
 
   @override
   Future<ObservationDetail?> findActiveDetail({
