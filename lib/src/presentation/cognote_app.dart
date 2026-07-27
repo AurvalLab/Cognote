@@ -1,13 +1,20 @@
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../application/cognote_application.dart';
+import 'observation_detail_page.dart';
+import 'timeline_page.dart';
 
 class CognoteApp extends StatefulWidget {
-  const CognoteApp({required this.application, super.key});
+  const CognoteApp({
+    required this.application,
+    this.closeApplicationOnDispose = true,
+    super.key,
+  });
 
   final CognoteApplication application;
+  final bool closeApplicationOnDispose;
 
   @override
   State<CognoteApp> createState() => _CognoteAppState();
@@ -16,10 +23,28 @@ class CognoteApp extends StatefulWidget {
 class _CognoteAppState extends State<CognoteApp> {
   @override
   void dispose() {
-    unawaited(widget.application.close());
+    if (widget.closeApplicationOnDispose) {
+      unawaited(widget.application.close());
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) => MaterialApp(
+    home: Builder(
+      builder: (context) => TimelinePage(
+        timeline: widget.application.watchTimeline(),
+        onOpenObservation: (observationId) {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ObservationDetailPage(
+                detail: widget.application.getObservationDetail(observationId),
+                resolveLocalFile: widget.application.resolveLocalAsset,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }

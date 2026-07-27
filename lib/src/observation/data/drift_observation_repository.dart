@@ -5,10 +5,13 @@ import '../../database/cognote_database.dart' as drift;
 import '../domain/image_observation_exceptions.dart';
 import '../domain/local_asset.dart';
 import '../domain/observation.dart';
+import '../domain/observation_detail.dart';
+import '../domain/observation_query_repository.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_repository.dart';
 
-class DriftObservationRepository implements ObservationRepository {
+class DriftObservationRepository
+    implements ObservationRepository, ObservationQueryRepository {
   const DriftObservationRepository(this._database);
 
   final drift.CognoteDatabase _database;
@@ -91,6 +94,53 @@ class DriftObservationRepository implements ObservationRepository {
       _database.localAssets,
     )..where((table) => table.localUri.equals(localUri))).getSingleOrNull();
     return row != null;
+  }
+
+  @override
+  Stream<List<Observation>> watchActiveTimeline({required String ownerId}) {
+    final query = _database.select(_database.observations)
+      ..where(
+        (table) => table.ownerId.equals(ownerId) & table.deletedAt.isNull(),
+      )
+      ..orderBy([
+        (table) => OrderingTerm.desc(table.capturedAt),
+        (table) => OrderingTerm.desc(table.createdAt),
+        (table) => OrderingTerm.desc(table.id),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_toDomain).toList(growable: false),
+    );
+  }
+
+  @override
+  Future<ObservationDetail?> findActiveDetail({
+    required String ownerId,
+    required String observationId,
+  }) async {
+    final observationRow =
+        await (_database.select(_database.observations)..where(
+              (table) =>
+                  table.id.equals(observationId) &
+                  table.ownerId.equals(ownerId) &
+                  table.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (observationRow == null) return null;
+
+    final observation = _toDomain(observationRow);
+    if (observation.inputType == ObservationInputType.text) {
+      return ObservationDetail(observation: observation, localAsset: null);
+    }
+
+    final assetRow =
+        await (_database.select(_database.localAssets)
+              ..where((table) => table.observationId.equals(observationId)))
+            .getSingleOrNull();
+    if (assetRow == null) throw AssetIntegrityException();
+    return ObservationDetail(
+      observation: observation,
+      localAsset: _assetToDomain(assetRow),
+    );
   }
 
   Future<Observation?> _findById(String id) async {

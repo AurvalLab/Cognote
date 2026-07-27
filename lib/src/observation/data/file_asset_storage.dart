@@ -72,6 +72,8 @@ class FileAssetStorage {
   Future<int> length(String uri) => _file(uri).length();
   Stream<List<int>> openRead(String uri) => _file(uri).openRead();
 
+  File resolveLocalFile(String uri) => _file(uri);
+
   Future<void> move(String fromUri, String toUri) async {
     final source = _file(fromUri);
     final target = _file(toUri);

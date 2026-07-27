@@ -8,10 +8,13 @@ import '../identity/data/drift_identity_repository.dart';
 import '../identity/domain/identity_repository.dart';
 import '../observation/application/create_text_observation.dart';
 import '../observation/application/create_image_observation.dart';
+import '../observation/application/get_observation_detail.dart';
+import '../observation/application/watch_observation_timeline.dart';
 import '../observation/data/drift_observation_repository.dart';
 import '../observation/data/file_asset_storage.dart';
 import '../observation/data/uuid_v7_observation_id_generator.dart';
 import '../observation/domain/observation.dart';
+import '../observation/domain/observation_detail.dart';
 import '../observation/domain/observation_id_generator.dart';
 
 typedef CognoteDatabaseFactory = CognoteDatabase Function();
@@ -25,6 +28,8 @@ class CognoteApplication {
     this.localIdentity,
     this._createTextObservation,
     this.createImageObservation,
+    this._watchObservationTimeline,
+    this._getObservationDetail,
     this._assetStorage,
   );
 
@@ -32,6 +37,8 @@ class CognoteApplication {
   final LocalIdentity localIdentity;
   final CreateTextObservation _createTextObservation;
   final CreateImageObservation createImageObservation;
+  final WatchObservationTimeline _watchObservationTimeline;
+  final GetObservationDetail _getObservationDetail;
   final FileAssetStorage _assetStorage;
   Future<void>? _closeFuture;
 
@@ -75,11 +82,21 @@ class CognoteApplication {
         assetStorage: storage,
         clock: utcNow ?? _utcNow,
       );
+      final watchObservationTimeline = WatchObservationTimeline(
+        repository: repository,
+        localIdentity: localIdentity,
+      );
+      final getObservationDetail = GetObservationDetail(
+        repository: repository,
+        localIdentity: localIdentity,
+      );
       return CognoteApplication._(
         database,
         localIdentity,
         createTextObservation,
         createImageObservation,
+        watchObservationTimeline,
+        getObservationDetail,
         storage,
       );
     } catch (_) {
@@ -103,6 +120,14 @@ class CognoteApplication {
   Future<Observation> createTextObservation(
     CreateTextObservationCommand command,
   ) => _createTextObservation.execute(command);
+
+  Stream<List<Observation>> watchTimeline() => _watchObservationTimeline();
+
+  Future<ObservationDetail?> getObservationDetail(String observationId) =>
+      _getObservationDetail(observationId);
+
+  File resolveLocalAsset(String localUri) =>
+      _assetStorage.resolveLocalFile(localUri);
 
   Future<void> close() => _closeFuture ??= Future.wait([
     _database.close(),

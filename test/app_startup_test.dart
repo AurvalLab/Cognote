@@ -7,8 +7,9 @@ import 'package:cognote/src/identity/domain/identity_repository.dart';
 import 'package:cognote/src/identity/domain/principal.dart' as domain;
 import 'package:cognote/src/observation/data/file_asset_storage.dart';
 import 'package:cognote/src/presentation/cognote_app.dart';
+import 'package:cognote/src/presentation/timeline_page.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -36,15 +37,21 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(CognoteApp(application: application));
+      await tester.pumpWidget(
+        CognoteApp(application: application, closeApplicationOnDispose: false),
+      );
 
-      expect(find.byType(SizedBox), findsOneWidget);
+      expect(find.byType(MaterialApp), findsOneWidget);
+      expect(find.byType(TimelinePage), findsOneWidget);
       expect(initializationCount, 1);
 
-      await tester.pumpWidget(CognoteApp(application: application));
+      await tester.pumpWidget(
+        CognoteApp(application: application, closeApplicationOnDispose: false),
+      );
       expect(initializationCount, 1);
 
       await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 50));
       await application.close();
       expect(database.closeCount, 1);
     },
