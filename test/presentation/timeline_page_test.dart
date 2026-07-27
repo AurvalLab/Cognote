@@ -17,6 +17,7 @@ void main() {
         home: TimelinePage(
           timeline: controller.stream,
           onOpenObservation: (_) {},
+          onOpenDeletedObservations: () {},
         ),
       ),
     );
@@ -51,6 +52,7 @@ void main() {
         home: TimelinePage(
           timeline: Stream.value([observation]),
           onOpenObservation: (value) => opened = value,
+          onOpenDeletedObservations: () {},
         ),
       ),
     );
@@ -65,6 +67,7 @@ void main() {
         home: TimelinePage(
           timeline: Stream<List<Observation>>.error(StateError('read failed')),
           onOpenObservation: (_) {},
+          onOpenDeletedObservations: () {},
         ),
       ),
     );

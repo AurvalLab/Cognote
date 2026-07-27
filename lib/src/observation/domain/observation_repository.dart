@@ -1,5 +1,6 @@
 import 'observation.dart';
 import 'local_asset.dart';
+import 'observation_mutation_outcome.dart';
 
 class ImageObservationAggregate {
   const ImageObservationAggregate({
@@ -21,4 +22,16 @@ abstract interface class ObservationRepository {
   Future<ImageObservationAggregate?> findImageByObservationId(String id);
 
   Future<bool> isLocalUriReferenced(String localUri);
+
+  Future<ObservationMutationOutcome> deleteObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+  });
+
+  Future<ObservationMutationOutcome> restoreObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+  });
 }

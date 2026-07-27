@@ -6,15 +6,26 @@ class TimelinePage extends StatelessWidget {
   const TimelinePage({
     required this.timeline,
     required this.onOpenObservation,
+    required this.onOpenDeletedObservations,
     super.key,
   });
 
   final Stream<List<Observation>> timeline;
   final ValueChanged<String> onOpenObservation;
+  final VoidCallback onOpenDeletedObservations;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('时间线')),
+    appBar: AppBar(
+      title: const Text('时间线'),
+      actions: [
+        IconButton(
+          tooltip: '已删除记录',
+          onPressed: onOpenDeletedObservations,
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ],
+    ),
     body: StreamBuilder<List<Observation>>(
       stream: timeline,
       builder: (context, snapshot) {

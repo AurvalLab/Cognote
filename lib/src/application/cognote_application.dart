@@ -16,6 +16,7 @@ import '../observation/data/uuid_v7_observation_id_generator.dart';
 import '../observation/domain/observation.dart';
 import '../observation/domain/observation_detail.dart';
 import '../observation/domain/observation_id_generator.dart';
+import '../observation/domain/observation_mutation_outcome.dart';
 
 typedef CognoteDatabaseFactory = CognoteDatabase Function();
 typedef IdentityInitializer =
@@ -30,6 +31,8 @@ class CognoteApplication {
     this.createImageObservation,
     this._watchObservationTimeline,
     this._getObservationDetail,
+    this._observationRepository,
+    this._clock,
     this._assetStorage,
   );
 
@@ -39,6 +42,8 @@ class CognoteApplication {
   final CreateImageObservation createImageObservation;
   final WatchObservationTimeline _watchObservationTimeline;
   final GetObservationDetail _getObservationDetail;
+  final DriftObservationRepository _observationRepository;
+  final UtcNow _clock;
   final FileAssetStorage _assetStorage;
   Future<void>? _closeFuture;
 
@@ -97,6 +102,8 @@ class CognoteApplication {
         createImageObservation,
         watchObservationTimeline,
         getObservationDetail,
+        repository,
+        utcNow ?? _utcNow,
         storage,
       );
     } catch (_) {
@@ -125,6 +132,25 @@ class CognoteApplication {
 
   Future<ObservationDetail?> getObservationDetail(String observationId) =>
       _getObservationDetail(observationId);
+
+  Stream<List<Observation>> watchDeletedTimeline() => _observationRepository
+      .watchDeletedTimeline(ownerId: localIdentity.principal.id);
+
+  Future<ObservationMutationOutcome> deleteObservation(String observationId) {
+    return _observationRepository.deleteObservation(
+      ownerId: localIdentity.principal.id,
+      observationId: observationId,
+      deletedAt: _clock(),
+    );
+  }
+
+  Future<ObservationMutationOutcome> restoreObservation(String observationId) {
+    return _observationRepository.restoreObservation(
+      ownerId: localIdentity.principal.id,
+      observationId: observationId,
+      restoredAt: _clock(),
+    );
+  }
 
   File resolveLocalAsset(String localUri) =>
       _assetStorage.resolveLocalFile(localUri);

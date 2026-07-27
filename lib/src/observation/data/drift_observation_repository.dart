@@ -6,6 +6,7 @@ import '../domain/image_observation_exceptions.dart';
 import '../domain/local_asset.dart';
 import '../domain/observation.dart';
 import '../domain/observation_detail.dart';
+import '../domain/observation_mutation_outcome.dart';
 import '../domain/observation_query_repository.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_repository.dart';
@@ -97,12 +98,85 @@ class DriftObservationRepository
   }
 
   @override
+  Future<ObservationMutationOutcome> deleteObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+  }) {
+    return _database.transaction(() async {
+      final affectedRows =
+          await (_database.update(_database.observations)..where(
+                (table) =>
+                    table.id.equals(observationId) &
+                    table.ownerId.equals(ownerId) &
+                    table.deletedAt.isNull(),
+              ))
+              .write(
+                drift.ObservationsCompanion(
+                  deletedAt: Value<DateTime?>(deletedAt),
+                  updatedAt: Value(deletedAt),
+                ),
+              );
+      if (affectedRows == 1) return ObservationMutationOutcome.changed;
+      final existing = await _findOwnedById(ownerId, observationId);
+      return existing == null
+          ? ObservationMutationOutcome.notFound
+          : ObservationMutationOutcome.unchanged;
+    });
+  }
+
+  @override
+  Future<ObservationMutationOutcome> restoreObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+  }) {
+    return _database.transaction(() async {
+      final affectedRows =
+          await (_database.update(_database.observations)..where(
+                (table) =>
+                    table.id.equals(observationId) &
+                    table.ownerId.equals(ownerId) &
+                    table.deletedAt.isNotNull(),
+              ))
+              .write(
+                drift.ObservationsCompanion(
+                  deletedAt: const Value<DateTime?>(null),
+                  updatedAt: Value(restoredAt),
+                ),
+              );
+      if (affectedRows == 1) return ObservationMutationOutcome.changed;
+      final existing = await _findOwnedById(ownerId, observationId);
+      return existing == null
+          ? ObservationMutationOutcome.notFound
+          : ObservationMutationOutcome.unchanged;
+    });
+  }
+
+  @override
   Stream<List<Observation>> watchActiveTimeline({required String ownerId}) {
     final query = _database.select(_database.observations)
       ..where(
         (table) => table.ownerId.equals(ownerId) & table.deletedAt.isNull(),
       )
       ..orderBy([
+        (table) => OrderingTerm.desc(table.capturedAt),
+        (table) => OrderingTerm.desc(table.createdAt),
+        (table) => OrderingTerm.desc(table.id),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_toDomain).toList(growable: false),
+    );
+  }
+
+  @override
+  Stream<List<Observation>> watchDeletedTimeline({required String ownerId}) {
+    final query = _database.select(_database.observations)
+      ..where(
+        (table) => table.ownerId.equals(ownerId) & table.deletedAt.isNotNull(),
+      )
+      ..orderBy([
+        (table) => OrderingTerm.desc(table.deletedAt),
         (table) => OrderingTerm.desc(table.capturedAt),
         (table) => OrderingTerm.desc(table.createdAt),
         (table) => OrderingTerm.desc(table.id),
@@ -147,6 +221,15 @@ class DriftObservationRepository
     final row = await (_database.select(
       _database.observations,
     )..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _toDomain(row);
+  }
+
+  Future<Observation?> _findOwnedById(String ownerId, String id) async {
+    final row =
+        await (_database.select(_database.observations)..where(
+              (table) => table.id.equals(id) & table.ownerId.equals(ownerId),
+            ))
+            .getSingleOrNull();
     return row == null ? null : _toDomain(row);
   }
 

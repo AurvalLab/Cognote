@@ -6,6 +6,7 @@ import 'package:cognote/src/observation/application/watch_observation_timeline.d
 
 import 'package:cognote/src/observation/domain/observation.dart';
 import 'package:cognote/src/observation/domain/observation_detail.dart';
+import 'package:cognote/src/observation/domain/observation_mutation_outcome.dart';
 import 'package:cognote/src/observation/domain/observation_query_repository.dart';
 import 'package:cognote/src/observation/domain/observation_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +52,10 @@ class _RecordingRepository
   }
 
   @override
+  Stream<List<Observation>> watchDeletedTimeline({required String ownerId}) =>
+      Stream.value(const []);
+
+  @override
   Future<ObservationDetail?> findActiveDetail({
     required String ownerId,
     required String observationId,
@@ -76,6 +81,20 @@ class _RecordingRepository
   @override
   Future<bool> isLocalUriReferenced(String localUri) =>
       throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> deleteObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> restoreObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+  }) => throw UnimplementedError();
 }
 
 final _identity = LocalIdentity(

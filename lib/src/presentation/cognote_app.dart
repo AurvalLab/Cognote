@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../application/cognote_application.dart';
+import 'deleted_observations_page.dart';
 import 'observation_detail_page.dart';
 import 'timeline_page.dart';
 
@@ -40,6 +41,18 @@ class _CognoteAppState extends State<CognoteApp> {
               builder: (_) => ObservationDetailPage(
                 detail: widget.application.getObservationDetail(observationId),
                 resolveLocalFile: widget.application.resolveLocalAsset,
+                onDelete: () =>
+                    widget.application.deleteObservation(observationId),
+              ),
+            ),
+          );
+        },
+        onOpenDeletedObservations: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DeletedObservationsPage(
+                observations: widget.application.watchDeletedTimeline(),
+                onRestore: widget.application.restoreObservation,
               ),
             ),
           );
