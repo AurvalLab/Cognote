@@ -7,8 +7,12 @@ import 'package:cognote/src/identity/domain/principal.dart';
 import 'package:cognote/src/observation/application/create_image_observation.dart';
 import 'package:cognote/src/observation/data/file_asset_storage.dart';
 import 'package:cognote/src/observation/domain/image_source.dart';
+import 'package:cognote/src/observation/domain/observation.dart';
 import 'package:cognote/src/observation/domain/observation_id_generator.dart';
+import 'package:cognote/src/observation/domain/observation_mutation_outcome.dart';
+import 'package:cognote/src/observation/domain/observation_outbox_mutation_repository.dart';
 import 'package:cognote/src/observation/domain/observation_repository.dart';
+import 'package:cognote/src/outbox/domain/outbox_operation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,6 +34,14 @@ void main() {
     expect(result.localAsset.localUri, command.finalUri);
     expect(await storage.exists(command.preparedUri), isFalse);
     expect(await storage.exists(command.finalUri), isTrue);
+    expect(repository.operation?.ownerId, 'principal');
+    expect(repository.operation?.deviceId, 'device');
+    expect(repository.operation?.operationId, command.operationId);
+    expect(repository.operation?.aggregateId, command.observationId);
+    expect(repository.operation?.operationKind, 'observation_upsert');
+    expect(repository.operation?.createdAt, command.createdAt);
+    expect(repository.stored?.observation.id, command.observationId);
+    expect(repository.stored?.localAsset.id, command.localAssetId);
   });
 
   test(
@@ -145,8 +157,10 @@ Future<PreparedImageObservationCommand> _command(
   return PreparedImageObservationCommand(
     observationId: '018f7777-7777-7777-8777-777777777777',
     localAssetId: '018f8888-8888-7888-8888-888888888888',
+    operationId: '018f9999-9999-7999-8999-999999999999',
     caption: null,
     capturedAtUtc: _now,
+    createdAt: _now,
     timezoneOffset: 0,
     preparedUri: prepared,
     finalUri: 'originals/01/asset.jpg',
@@ -166,8 +180,10 @@ PreparedImageObservationCommand _copyCommand(
 }) => PreparedImageObservationCommand(
   observationId: source.observationId,
   localAssetId: source.localAssetId,
+  operationId: source.operationId,
   caption: caption ?? source.caption,
   capturedAtUtc: source.capturedAtUtc,
+  createdAt: source.createdAt,
   timezoneOffset: source.timezoneOffset,
   preparedUri: source.preparedUri,
   finalUri: source.finalUri,
@@ -183,6 +199,7 @@ CreateImageObservation _useCase(
   ObservationRepository repository,
 ) => CreateImageObservation(
   repository: repository,
+  outboxMutationRepository: repository as ObservationOutboxMutationRepository,
   localIdentity: _identity(),
   observationIdGenerator: const _FixedId(),
   localAssetIdGenerator: const _FixedId(),
@@ -193,15 +210,19 @@ Future<String> _hash(FileAssetStorage storage, String uri) async =>
     (await sha256.bind(storage.openRead(uri)).first).toString();
 final _now = DateTime.utc(2026, 7, 26);
 
-class _Repository implements ObservationRepository {
+class _Repository
+    implements ObservationRepository, ObservationOutboxMutationRepository {
   _Repository({this.createError});
   final Object? createError;
   ImageObservationAggregate? stored;
+  OutboxOperation? operation;
   @override
-  Future<ImageObservationAggregate> createImage(
-    ImageObservationAggregate aggregate,
-  ) async {
+  Future<ImageObservationAggregate> createImageWithOutbox({
+    required ImageObservationAggregate aggregate,
+    required OutboxOperation operation,
+  }) async {
     if (createError != null) throw createError!;
+    this.operation = operation;
     return stored ??= aggregate;
   }
 
@@ -212,18 +233,63 @@ class _Repository implements ObservationRepository {
   @override
   Future<bool> isLocalUriReferenced(String localUri) async =>
       stored?.localAsset.localUri == localUri;
+
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<Observation> create(Observation observation) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ImageObservationAggregate> createImage(
+    ImageObservationAggregate aggregate,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> deleteObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> restoreObservation({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Observation> createTextWithOutbox({
+    required Observation observation,
+    required OutboxOperation operation,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> deleteWithOutbox({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+    required OutboxOperation operation,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<ObservationMutationOutcome> restoreWithOutbox({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+    required OutboxOperation operation,
+  }) => throw UnimplementedError();
 }
 
 class _SemanticRepository extends _Repository {
   var createCalls = 0;
 
   @override
-  Future<ImageObservationAggregate> createImage(
-    ImageObservationAggregate aggregate,
-  ) async {
+  Future<ImageObservationAggregate> createImageWithOutbox({
+    required ImageObservationAggregate aggregate,
+    required OutboxOperation operation,
+  }) async {
     createCalls++;
+    this.operation = operation;
     final existing = stored;
     if (existing == null) return stored = aggregate;
     if (existing.observation.rawText != aggregate.observation.rawText) {

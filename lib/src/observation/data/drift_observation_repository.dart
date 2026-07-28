@@ -2,11 +2,14 @@ import 'package:drift/drift.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../database/cognote_database.dart' as drift;
+import '../../outbox/domain/outbox_operation_conflict_exception.dart';
+import '../../outbox/domain/outbox_operation.dart';
 import '../domain/image_observation_exceptions.dart';
 import '../domain/local_asset.dart';
 import '../domain/observation.dart';
 import '../domain/observation_detail.dart';
 import '../domain/observation_mutation_outcome.dart';
+import '../domain/observation_outbox_mutation_repository.dart';
 import '../domain/observation_query_repository.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_repository.dart';
@@ -14,17 +17,37 @@ import '../domain/observation_search_result.dart';
 import 'observation_search_query.dart';
 
 class DriftObservationRepository
-    implements ObservationRepository, ObservationQueryRepository {
+    implements
+        ObservationRepository,
+        ObservationOutboxMutationRepository,
+        ObservationQueryRepository {
   const DriftObservationRepository(this._database);
 
   final drift.CognoteDatabase _database;
 
   @override
-  Future<Observation> create(Observation observation) {
+  Future<Observation> create(Observation observation) =>
+      _createTextWithOperation(observation, null);
+
+  @override
+  Future<Observation> createTextWithOutbox({
+    required Observation observation,
+    required OutboxOperation operation,
+  }) async {
+    _verifyUpsertOperation(operation, observation);
+    return _createTextWithOperation(observation, operation);
+  }
+
+  Future<Observation> _createTextWithOperation(
+    Observation observation,
+    OutboxOperation? operation,
+  ) {
     return _database.transaction(() async {
       final existing = await _findById(observation.id);
       if (existing != null) {
-        return _resolveExisting(existing, observation);
+        final resolved = _resolveExisting(existing, observation);
+        await _recordOutboxOperation(operation: operation);
+        return resolved;
       }
 
       try {
@@ -39,8 +62,11 @@ class DriftObservationRepository
         if (raced == null) {
           rethrow;
         }
-        return _resolveExisting(raced, observation);
+        final resolved = _resolveExisting(raced, observation);
+        await _recordOutboxOperation(operation: operation);
+        return resolved;
       }
+      await _recordOutboxOperation(operation: operation);
       return observation;
     });
   }
@@ -48,6 +74,20 @@ class DriftObservationRepository
   @override
   Future<ImageObservationAggregate> createImage(
     ImageObservationAggregate aggregate,
+  ) => _createImageWithOperation(aggregate, null);
+
+  @override
+  Future<ImageObservationAggregate> createImageWithOutbox({
+    required ImageObservationAggregate aggregate,
+    required OutboxOperation operation,
+  }) async {
+    _verifyUpsertOperation(operation, aggregate.observation);
+    return _createImageWithOperation(aggregate, operation);
+  }
+
+  Future<ImageObservationAggregate> _createImageWithOperation(
+    ImageObservationAggregate aggregate,
+    OutboxOperation? operation,
   ) {
     return _database.transaction(() async {
       final existingObservation = await _findById(aggregate.observation.id);
@@ -60,6 +100,7 @@ class DriftObservationRepository
             !_sameAsset(existing.localAsset, aggregate.localAsset)) {
           throw LocalAssetIdConflictException();
         }
+        await _recordOutboxOperation(operation: operation);
         return existing;
       }
       final existingAsset =
@@ -73,6 +114,7 @@ class DriftObservationRepository
       await _database.localAssets.insertOne(
         _toAssetCompanion(aggregate.localAsset),
       );
+      await _recordOutboxOperation(operation: operation);
       return aggregate;
     });
   }
@@ -104,6 +146,44 @@ class DriftObservationRepository
     required String ownerId,
     required String observationId,
     required DateTime deletedAt,
+  }) => deleteObservationWithOutbox(
+    ownerId: ownerId,
+    deviceId: '',
+    observationId: observationId,
+    deletedAt: deletedAt,
+    operationId: '',
+  );
+
+  @override
+  Future<ObservationMutationOutcome> deleteWithOutbox({
+    required String ownerId,
+    required String observationId,
+    required DateTime deletedAt,
+    required OutboxOperation operation,
+  }) async {
+    _verifyMutationOperation(
+      operation,
+      ownerId: ownerId,
+      aggregateId: observationId,
+      operationKind: _observationDelete,
+    );
+    return deleteObservationWithOutbox(
+      ownerId: ownerId,
+      deviceId: operation.deviceId,
+      observationId: observationId,
+      deletedAt: deletedAt,
+      operationId: operation.operationId,
+      operationCreatedAt: operation.createdAt,
+    );
+  }
+
+  Future<ObservationMutationOutcome> deleteObservationWithOutbox({
+    required String ownerId,
+    required String deviceId,
+    required String observationId,
+    required DateTime deletedAt,
+    required String operationId,
+    DateTime? operationCreatedAt,
   }) {
     return _database.transaction(() async {
       final affectedRows =
@@ -119,7 +199,17 @@ class DriftObservationRepository
                   updatedAt: Value(deletedAt),
                 ),
               );
-      if (affectedRows == 1) return ObservationMutationOutcome.changed;
+      if (affectedRows == 1) {
+        await _recordOutboxOperation(
+          operationId: operationId,
+          ownerId: ownerId,
+          deviceId: deviceId,
+          aggregateId: observationId,
+          operationKind: _observationDelete,
+          createdAt: operationCreatedAt ?? deletedAt,
+        );
+        return ObservationMutationOutcome.changed;
+      }
       final existing = await _findOwnedById(ownerId, observationId);
       return existing == null
           ? ObservationMutationOutcome.notFound
@@ -132,6 +222,44 @@ class DriftObservationRepository
     required String ownerId,
     required String observationId,
     required DateTime restoredAt,
+  }) => restoreObservationWithOutbox(
+    ownerId: ownerId,
+    deviceId: '',
+    observationId: observationId,
+    restoredAt: restoredAt,
+    operationId: '',
+  );
+
+  @override
+  Future<ObservationMutationOutcome> restoreWithOutbox({
+    required String ownerId,
+    required String observationId,
+    required DateTime restoredAt,
+    required OutboxOperation operation,
+  }) async {
+    _verifyMutationOperation(
+      operation,
+      ownerId: ownerId,
+      aggregateId: observationId,
+      operationKind: _observationUpsert,
+    );
+    return restoreObservationWithOutbox(
+      ownerId: ownerId,
+      deviceId: operation.deviceId,
+      observationId: observationId,
+      restoredAt: restoredAt,
+      operationId: operation.operationId,
+      operationCreatedAt: operation.createdAt,
+    );
+  }
+
+  Future<ObservationMutationOutcome> restoreObservationWithOutbox({
+    required String ownerId,
+    required String deviceId,
+    required String observationId,
+    required DateTime restoredAt,
+    required String operationId,
+    DateTime? operationCreatedAt,
   }) {
     return _database.transaction(() async {
       final affectedRows =
@@ -147,7 +275,17 @@ class DriftObservationRepository
                   updatedAt: Value(restoredAt),
                 ),
               );
-      if (affectedRows == 1) return ObservationMutationOutcome.changed;
+      if (affectedRows == 1) {
+        await _recordOutboxOperation(
+          operationId: operationId,
+          ownerId: ownerId,
+          deviceId: deviceId,
+          aggregateId: observationId,
+          operationKind: _observationUpsert,
+          createdAt: operationCreatedAt ?? restoredAt,
+        );
+        return ObservationMutationOutcome.changed;
+      }
       final existing = await _findOwnedById(ownerId, observationId);
       return existing == null
           ? ObservationMutationOutcome.notFound
@@ -398,6 +536,114 @@ class DriftObservationRepository
       left.exifRemoved == right.exifRemoved &&
       left.uploadState == right.uploadState;
 
+  void _verifyUpsertOperation(
+    OutboxOperation operation,
+    Observation observation,
+  ) {
+    _verifyMutationOperation(
+      operation,
+      ownerId: observation.ownerId,
+      aggregateId: observation.id,
+      operationKind: _observationUpsert,
+    );
+    if (operation.deviceId != observation.createdByDeviceId ||
+        operation.createdAt.toUtc() != observation.createdAt.toUtc()) {
+      throw OutboxOperationConflictException();
+    }
+  }
+
+  void _verifyMutationOperation(
+    OutboxOperation operation, {
+    required String ownerId,
+    required String aggregateId,
+    required String operationKind,
+  }) {
+    if (operation.ownerId != ownerId ||
+        operation.aggregateType != _observationAggregate ||
+        operation.aggregateId != aggregateId ||
+        operation.operationKind != operationKind) {
+      throw OutboxOperationConflictException();
+    }
+  }
+
+  Future<void> _recordOutboxOperation({
+    OutboxOperation? operation,
+    String? operationId,
+    String? ownerId,
+    String? deviceId,
+    String? aggregateId,
+    String? operationKind,
+    DateTime? createdAt,
+  }) async {
+    final outboxOperation =
+        operation ??
+        (operationId == null ||
+                operationId.isEmpty ||
+                ownerId == null ||
+                deviceId == null ||
+                deviceId.isEmpty ||
+                aggregateId == null ||
+                operationKind == null ||
+                createdAt == null
+            ? null
+            : OutboxOperation(
+                operationId: operationId,
+                ownerId: ownerId,
+                deviceId: deviceId,
+                aggregateType: _observationAggregate,
+                aggregateId: aggregateId,
+                operationKind: operationKind,
+                createdAt: createdAt,
+              ));
+    if (outboxOperation == null) return;
+    final existingBeforeInsert =
+        await (_database.select(_database.outboxOperations)..where(
+              (table) => table.operationId.equals(outboxOperation.operationId),
+            ))
+            .getSingleOrNull();
+    if (existingBeforeInsert != null) {
+      _verifyStoredOperation(existingBeforeInsert, outboxOperation);
+      return;
+    }
+    await _database
+        .into(_database.outboxOperations)
+        .insert(
+          drift.OutboxOperationsCompanion.insert(
+            operationId: outboxOperation.operationId,
+            ownerId: outboxOperation.ownerId,
+            deviceId: outboxOperation.deviceId,
+            aggregateType: outboxOperation.aggregateType,
+            aggregateId: outboxOperation.aggregateId,
+            operationKind: outboxOperation.operationKind,
+            createdAt: outboxOperation.createdAt,
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+    final existing =
+        await (_database.select(_database.outboxOperations)..where(
+              (table) => table.operationId.equals(outboxOperation.operationId),
+            ))
+            .getSingleOrNull();
+    if (existing == null) {
+      throw StateError('Outbox operation was not persisted');
+    }
+    _verifyStoredOperation(existing, outboxOperation);
+  }
+
+  void _verifyStoredOperation(
+    drift.OutboxOperationRow existing,
+    OutboxOperation operation,
+  ) {
+    if (existing.ownerId != operation.ownerId ||
+        existing.deviceId != operation.deviceId ||
+        existing.aggregateType != operation.aggregateType ||
+        existing.aggregateId != operation.aggregateId ||
+        existing.operationKind != operation.operationKind ||
+        existing.createdAt.toUtc() != operation.createdAt.toUtc()) {
+      throw OutboxOperationConflictException();
+    }
+  }
+
   Observation _toDomain(drift.Observation row) {
     return Observation(
       id: row.id,
@@ -451,3 +697,7 @@ SyncPolicy _syncPolicyFromDatabase(String value) => switch (value) {
   'sync_enabled' => SyncPolicy.syncEnabled,
   _ => throw StateError('Unknown sync policy: $value'),
 };
+
+const _observationAggregate = 'observation';
+const _observationUpsert = 'observation_upsert';
+const _observationDelete = 'observation_delete';

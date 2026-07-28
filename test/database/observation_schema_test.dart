@@ -25,7 +25,7 @@ void main() {
         )
         .get();
 
-    expect(version.read<int>('user_version'), 3);
+    expect(version.read<int>('user_version'), 4);
     expect(tables, hasLength(1));
   });
 

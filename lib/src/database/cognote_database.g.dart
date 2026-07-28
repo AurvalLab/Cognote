@@ -2543,6 +2543,502 @@ class LocalAssetsCompanion extends UpdateCompanion<LocalAsset> {
   }
 }
 
+class $OutboxOperationsTable extends OutboxOperations
+    with TableInfo<$OutboxOperationsTable, OutboxOperationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OutboxOperationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _operationIdMeta = const VerificationMeta(
+    'operationId',
+  );
+  @override
+  late final GeneratedColumn<String> operationId = GeneratedColumn<String>(
+    'operation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES principals (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES device_identities (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _aggregateTypeMeta = const VerificationMeta(
+    'aggregateType',
+  );
+  @override
+  late final GeneratedColumn<String> aggregateType = GeneratedColumn<String>(
+    'aggregate_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _aggregateIdMeta = const VerificationMeta(
+    'aggregateId',
+  );
+  @override
+  late final GeneratedColumn<String> aggregateId = GeneratedColumn<String>(
+    'aggregate_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _operationKindMeta = const VerificationMeta(
+    'operationKind',
+  );
+  @override
+  late final GeneratedColumn<String> operationKind = GeneratedColumn<String>(
+    'operation_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    operationId,
+    ownerId,
+    deviceId,
+    aggregateType,
+    aggregateId,
+    operationKind,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'outbox_operations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OutboxOperationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('operation_id')) {
+      context.handle(
+        _operationIdMeta,
+        operationId.isAcceptableOrUnknown(
+          data['operation_id']!,
+          _operationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_operationIdMeta);
+    }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerIdMeta);
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('aggregate_type')) {
+      context.handle(
+        _aggregateTypeMeta,
+        aggregateType.isAcceptableOrUnknown(
+          data['aggregate_type']!,
+          _aggregateTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_aggregateTypeMeta);
+    }
+    if (data.containsKey('aggregate_id')) {
+      context.handle(
+        _aggregateIdMeta,
+        aggregateId.isAcceptableOrUnknown(
+          data['aggregate_id']!,
+          _aggregateIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_aggregateIdMeta);
+    }
+    if (data.containsKey('operation_kind')) {
+      context.handle(
+        _operationKindMeta,
+        operationKind.isAcceptableOrUnknown(
+          data['operation_kind']!,
+          _operationKindMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_operationKindMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {operationId};
+  @override
+  OutboxOperationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OutboxOperationRow(
+      operationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_id'],
+      )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      aggregateType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}aggregate_type'],
+      )!,
+      aggregateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}aggregate_id'],
+      )!,
+      operationKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_kind'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OutboxOperationsTable createAlias(String alias) {
+    return $OutboxOperationsTable(attachedDatabase, alias);
+  }
+}
+
+class OutboxOperationRow extends DataClass
+    implements Insertable<OutboxOperationRow> {
+  final String operationId;
+  final String ownerId;
+  final String deviceId;
+  final String aggregateType;
+  final String aggregateId;
+  final String operationKind;
+  final DateTime createdAt;
+  const OutboxOperationRow({
+    required this.operationId,
+    required this.ownerId,
+    required this.deviceId,
+    required this.aggregateType,
+    required this.aggregateId,
+    required this.operationKind,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['operation_id'] = Variable<String>(operationId);
+    map['owner_id'] = Variable<String>(ownerId);
+    map['device_id'] = Variable<String>(deviceId);
+    map['aggregate_type'] = Variable<String>(aggregateType);
+    map['aggregate_id'] = Variable<String>(aggregateId);
+    map['operation_kind'] = Variable<String>(operationKind);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  OutboxOperationsCompanion toCompanion(bool nullToAbsent) {
+    return OutboxOperationsCompanion(
+      operationId: Value(operationId),
+      ownerId: Value(ownerId),
+      deviceId: Value(deviceId),
+      aggregateType: Value(aggregateType),
+      aggregateId: Value(aggregateId),
+      operationKind: Value(operationKind),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory OutboxOperationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OutboxOperationRow(
+      operationId: serializer.fromJson<String>(json['operationId']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      aggregateType: serializer.fromJson<String>(json['aggregateType']),
+      aggregateId: serializer.fromJson<String>(json['aggregateId']),
+      operationKind: serializer.fromJson<String>(json['operationKind']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'operationId': serializer.toJson<String>(operationId),
+      'ownerId': serializer.toJson<String>(ownerId),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'aggregateType': serializer.toJson<String>(aggregateType),
+      'aggregateId': serializer.toJson<String>(aggregateId),
+      'operationKind': serializer.toJson<String>(operationKind),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  OutboxOperationRow copyWith({
+    String? operationId,
+    String? ownerId,
+    String? deviceId,
+    String? aggregateType,
+    String? aggregateId,
+    String? operationKind,
+    DateTime? createdAt,
+  }) => OutboxOperationRow(
+    operationId: operationId ?? this.operationId,
+    ownerId: ownerId ?? this.ownerId,
+    deviceId: deviceId ?? this.deviceId,
+    aggregateType: aggregateType ?? this.aggregateType,
+    aggregateId: aggregateId ?? this.aggregateId,
+    operationKind: operationKind ?? this.operationKind,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  OutboxOperationRow copyWithCompanion(OutboxOperationsCompanion data) {
+    return OutboxOperationRow(
+      operationId: data.operationId.present
+          ? data.operationId.value
+          : this.operationId,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      aggregateType: data.aggregateType.present
+          ? data.aggregateType.value
+          : this.aggregateType,
+      aggregateId: data.aggregateId.present
+          ? data.aggregateId.value
+          : this.aggregateId,
+      operationKind: data.operationKind.present
+          ? data.operationKind.value
+          : this.operationKind,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxOperationRow(')
+          ..write('operationId: $operationId, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('aggregateType: $aggregateType, ')
+          ..write('aggregateId: $aggregateId, ')
+          ..write('operationKind: $operationKind, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    operationId,
+    ownerId,
+    deviceId,
+    aggregateType,
+    aggregateId,
+    operationKind,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OutboxOperationRow &&
+          other.operationId == this.operationId &&
+          other.ownerId == this.ownerId &&
+          other.deviceId == this.deviceId &&
+          other.aggregateType == this.aggregateType &&
+          other.aggregateId == this.aggregateId &&
+          other.operationKind == this.operationKind &&
+          other.createdAt == this.createdAt);
+}
+
+class OutboxOperationsCompanion extends UpdateCompanion<OutboxOperationRow> {
+  final Value<String> operationId;
+  final Value<String> ownerId;
+  final Value<String> deviceId;
+  final Value<String> aggregateType;
+  final Value<String> aggregateId;
+  final Value<String> operationKind;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const OutboxOperationsCompanion({
+    this.operationId = const Value.absent(),
+    this.ownerId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.aggregateType = const Value.absent(),
+    this.aggregateId = const Value.absent(),
+    this.operationKind = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OutboxOperationsCompanion.insert({
+    required String operationId,
+    required String ownerId,
+    required String deviceId,
+    required String aggregateType,
+    required String aggregateId,
+    required String operationKind,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : operationId = Value(operationId),
+       ownerId = Value(ownerId),
+       deviceId = Value(deviceId),
+       aggregateType = Value(aggregateType),
+       aggregateId = Value(aggregateId),
+       operationKind = Value(operationKind),
+       createdAt = Value(createdAt);
+  static Insertable<OutboxOperationRow> custom({
+    Expression<String>? operationId,
+    Expression<String>? ownerId,
+    Expression<String>? deviceId,
+    Expression<String>? aggregateType,
+    Expression<String>? aggregateId,
+    Expression<String>? operationKind,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (operationId != null) 'operation_id': operationId,
+      if (ownerId != null) 'owner_id': ownerId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (aggregateType != null) 'aggregate_type': aggregateType,
+      if (aggregateId != null) 'aggregate_id': aggregateId,
+      if (operationKind != null) 'operation_kind': operationKind,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OutboxOperationsCompanion copyWith({
+    Value<String>? operationId,
+    Value<String>? ownerId,
+    Value<String>? deviceId,
+    Value<String>? aggregateType,
+    Value<String>? aggregateId,
+    Value<String>? operationKind,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return OutboxOperationsCompanion(
+      operationId: operationId ?? this.operationId,
+      ownerId: ownerId ?? this.ownerId,
+      deviceId: deviceId ?? this.deviceId,
+      aggregateType: aggregateType ?? this.aggregateType,
+      aggregateId: aggregateId ?? this.aggregateId,
+      operationKind: operationKind ?? this.operationKind,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (operationId.present) {
+      map['operation_id'] = Variable<String>(operationId.value);
+    }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (aggregateType.present) {
+      map['aggregate_type'] = Variable<String>(aggregateType.value);
+    }
+    if (aggregateId.present) {
+      map['aggregate_id'] = Variable<String>(aggregateId.value);
+    }
+    if (operationKind.present) {
+      map['operation_kind'] = Variable<String>(operationKind.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxOperationsCompanion(')
+          ..write('operationId: $operationId, ')
+          ..write('ownerId: $ownerId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('aggregateType: $aggregateType, ')
+          ..write('aggregateId: $aggregateId, ')
+          ..write('operationKind: $operationKind, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CognoteDatabase extends GeneratedDatabase {
   _$CognoteDatabase(QueryExecutor e) : super(e);
   $CognoteDatabaseManager get managers => $CognoteDatabaseManager(this);
@@ -2552,6 +3048,9 @@ abstract class _$CognoteDatabase extends GeneratedDatabase {
   );
   late final $ObservationsTable observations = $ObservationsTable(this);
   late final $LocalAssetsTable localAssets = $LocalAssetsTable(this);
+  late final $OutboxOperationsTable outboxOperations = $OutboxOperationsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2561,6 +3060,7 @@ abstract class _$CognoteDatabase extends GeneratedDatabase {
     deviceIdentities,
     observations,
     localAssets,
+    outboxOperations,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2635,6 +3135,27 @@ final class $$PrincipalsTableReferences
     ).filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_observationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$OutboxOperationsTable, List<OutboxOperationRow>>
+  _outboxOperationsRefsTable(_$CognoteDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.outboxOperations,
+        aliasName: 'principals__id__outbox_operations__owner_id',
+      );
+
+  $$OutboxOperationsTableProcessedTableManager get outboxOperationsRefs {
+    final manager = $$OutboxOperationsTableTableManager(
+      $_db,
+      $_db.outboxOperations,
+    ).filter((f) => f.ownerId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _outboxOperationsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2726,6 +3247,31 @@ class $$PrincipalsTableFilterComposer
           }) => $$ObservationsTableFilterComposer(
             $db: $db,
             $table: $db.observations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> outboxOperationsRefs(
+    Expression<bool> Function($$OutboxOperationsTableFilterComposer f) f,
+  ) {
+    final $$OutboxOperationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxOperations,
+      getReferencedColumn: (t) => t.ownerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxOperationsTableFilterComposer(
+            $db: $db,
+            $table: $db.outboxOperations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2866,6 +3412,31 @@ class $$PrincipalsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> outboxOperationsRefs<T extends Object>(
+    Expression<T> Function($$OutboxOperationsTableAnnotationComposer a) f,
+  ) {
+    final $$OutboxOperationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxOperations,
+      getReferencedColumn: (t) => t.ownerId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxOperationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.outboxOperations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$PrincipalsTableTableManager
@@ -2884,6 +3455,7 @@ class $$PrincipalsTableTableManager
           PrefetchHooks Function({
             bool deviceIdentitiesRefs,
             bool observationsRefs,
+            bool outboxOperationsRefs,
           })
         > {
   $$PrincipalsTableTableManager(_$CognoteDatabase db, $PrincipalsTable table)
@@ -2946,12 +3518,17 @@ class $$PrincipalsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({deviceIdentitiesRefs = false, observationsRefs = false}) {
+              ({
+                deviceIdentitiesRefs = false,
+                observationsRefs = false,
+                outboxOperationsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (deviceIdentitiesRefs) db.deviceIdentities,
                     if (observationsRefs) db.observations,
+                    if (outboxOperationsRefs) db.outboxOperations,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2998,6 +3575,27 @@ class $$PrincipalsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (outboxOperationsRefs)
+                        await $_getPrefetchedData<
+                          Principal,
+                          $PrincipalsTable,
+                          OutboxOperationRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PrincipalsTableReferences
+                              ._outboxOperationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PrincipalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).outboxOperationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.ownerId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3018,7 +3616,11 @@ typedef $$PrincipalsTableProcessedTableManager =
       $$PrincipalsTableUpdateCompanionBuilder,
       (Principal, $$PrincipalsTableReferences),
       Principal,
-      PrefetchHooks Function({bool deviceIdentitiesRefs, bool observationsRefs})
+      PrefetchHooks Function({
+        bool deviceIdentitiesRefs,
+        bool observationsRefs,
+        bool outboxOperationsRefs,
+      })
     >;
 typedef $$DeviceIdentitiesTableCreateCompanionBuilder =
     DeviceIdentitiesCompanion Function({
@@ -3083,6 +3685,27 @@ final class $$DeviceIdentitiesTableReferences
         );
 
     final cache = $_typedResult.readTableOrNull(_observationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$OutboxOperationsTable, List<OutboxOperationRow>>
+  _outboxOperationsRefsTable(_$CognoteDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.outboxOperations,
+        aliasName: 'device_identities__id__outbox_operations__device_id',
+      );
+
+  $$OutboxOperationsTableProcessedTableManager get outboxOperationsRefs {
+    final manager = $$OutboxOperationsTableTableManager(
+      $_db,
+      $_db.outboxOperations,
+    ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _outboxOperationsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3157,6 +3780,31 @@ class $$DeviceIdentitiesTableFilterComposer
           }) => $$ObservationsTableFilterComposer(
             $db: $db,
             $table: $db.observations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> outboxOperationsRefs(
+    Expression<bool> Function($$OutboxOperationsTableFilterComposer f) f,
+  ) {
+    final $$OutboxOperationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxOperations,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxOperationsTableFilterComposer(
+            $db: $db,
+            $table: $db.outboxOperations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3292,6 +3940,31 @@ class $$DeviceIdentitiesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> outboxOperationsRefs<T extends Object>(
+    Expression<T> Function($$OutboxOperationsTableAnnotationComposer a) f,
+  ) {
+    final $$OutboxOperationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.outboxOperations,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$OutboxOperationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.outboxOperations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DeviceIdentitiesTableTableManager
@@ -3307,7 +3980,11 @@ class $$DeviceIdentitiesTableTableManager
           $$DeviceIdentitiesTableUpdateCompanionBuilder,
           (DeviceIdentity, $$DeviceIdentitiesTableReferences),
           DeviceIdentity,
-          PrefetchHooks Function({bool principalId, bool observationsRefs})
+          PrefetchHooks Function({
+            bool principalId,
+            bool observationsRefs,
+            bool outboxOperationsRefs,
+          })
         > {
   $$DeviceIdentitiesTableTableManager(
     _$CognoteDatabase db,
@@ -3363,11 +4040,16 @@ class $$DeviceIdentitiesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({principalId = false, observationsRefs = false}) {
+              ({
+                principalId = false,
+                observationsRefs = false,
+                outboxOperationsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (observationsRefs) db.observations,
+                    if (outboxOperationsRefs) db.outboxOperations,
                   ],
                   addJoins:
                       <
@@ -3426,6 +4108,27 @@ class $$DeviceIdentitiesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (outboxOperationsRefs)
+                        await $_getPrefetchedData<
+                          DeviceIdentity,
+                          $DeviceIdentitiesTable,
+                          OutboxOperationRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DeviceIdentitiesTableReferences
+                              ._outboxOperationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DeviceIdentitiesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).outboxOperationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.deviceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3446,7 +4149,11 @@ typedef $$DeviceIdentitiesTableProcessedTableManager =
       $$DeviceIdentitiesTableUpdateCompanionBuilder,
       (DeviceIdentity, $$DeviceIdentitiesTableReferences),
       DeviceIdentity,
-      PrefetchHooks Function({bool principalId, bool observationsRefs})
+      PrefetchHooks Function({
+        bool principalId,
+        bool observationsRefs,
+        bool outboxOperationsRefs,
+      })
     >;
 typedef $$ObservationsTableCreateCompanionBuilder =
     ObservationsCompanion Function({
@@ -4644,6 +5351,471 @@ typedef $$LocalAssetsTableProcessedTableManager =
       LocalAsset,
       PrefetchHooks Function({bool observationId})
     >;
+typedef $$OutboxOperationsTableCreateCompanionBuilder =
+    OutboxOperationsCompanion Function({
+      required String operationId,
+      required String ownerId,
+      required String deviceId,
+      required String aggregateType,
+      required String aggregateId,
+      required String operationKind,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$OutboxOperationsTableUpdateCompanionBuilder =
+    OutboxOperationsCompanion Function({
+      Value<String> operationId,
+      Value<String> ownerId,
+      Value<String> deviceId,
+      Value<String> aggregateType,
+      Value<String> aggregateId,
+      Value<String> operationKind,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$OutboxOperationsTableReferences
+    extends
+        BaseReferences<
+          _$CognoteDatabase,
+          $OutboxOperationsTable,
+          OutboxOperationRow
+        > {
+  $$OutboxOperationsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PrincipalsTable _ownerIdTable(_$CognoteDatabase db) =>
+      db.principals.createAlias('outbox_operations__owner_id__principals__id');
+
+  $$PrincipalsTableProcessedTableManager get ownerId {
+    final $_column = $_itemColumn<String>('owner_id')!;
+
+    final manager = $$PrincipalsTableTableManager(
+      $_db,
+      $_db.principals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ownerIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DeviceIdentitiesTable _deviceIdTable(_$CognoteDatabase db) => db
+      .deviceIdentities
+      .createAlias('outbox_operations__device_id__device_identities__id');
+
+  $$DeviceIdentitiesTableProcessedTableManager get deviceId {
+    final $_column = $_itemColumn<String>('device_id')!;
+
+    final manager = $$DeviceIdentitiesTableTableManager(
+      $_db,
+      $_db.deviceIdentities,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deviceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$OutboxOperationsTableFilterComposer
+    extends Composer<_$CognoteDatabase, $OutboxOperationsTable> {
+  $$OutboxOperationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get aggregateType => $composableBuilder(
+    column: $table.aggregateType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get aggregateId => $composableBuilder(
+    column: $table.aggregateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operationKind => $composableBuilder(
+    column: $table.operationKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PrincipalsTableFilterComposer get ownerId {
+    final $$PrincipalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ownerId,
+      referencedTable: $db.principals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrincipalsTableFilterComposer(
+            $db: $db,
+            $table: $db.principals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DeviceIdentitiesTableFilterComposer get deviceId {
+    final $$DeviceIdentitiesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.deviceIdentities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeviceIdentitiesTableFilterComposer(
+            $db: $db,
+            $table: $db.deviceIdentities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxOperationsTableOrderingComposer
+    extends Composer<_$CognoteDatabase, $OutboxOperationsTable> {
+  $$OutboxOperationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get aggregateType => $composableBuilder(
+    column: $table.aggregateType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get aggregateId => $composableBuilder(
+    column: $table.aggregateId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operationKind => $composableBuilder(
+    column: $table.operationKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PrincipalsTableOrderingComposer get ownerId {
+    final $$PrincipalsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ownerId,
+      referencedTable: $db.principals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrincipalsTableOrderingComposer(
+            $db: $db,
+            $table: $db.principals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DeviceIdentitiesTableOrderingComposer get deviceId {
+    final $$DeviceIdentitiesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.deviceIdentities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeviceIdentitiesTableOrderingComposer(
+            $db: $db,
+            $table: $db.deviceIdentities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxOperationsTableAnnotationComposer
+    extends Composer<_$CognoteDatabase, $OutboxOperationsTable> {
+  $$OutboxOperationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get aggregateType => $composableBuilder(
+    column: $table.aggregateType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get aggregateId => $composableBuilder(
+    column: $table.aggregateId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get operationKind => $composableBuilder(
+    column: $table.operationKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$PrincipalsTableAnnotationComposer get ownerId {
+    final $$PrincipalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ownerId,
+      referencedTable: $db.principals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrincipalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.principals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DeviceIdentitiesTableAnnotationComposer get deviceId {
+    final $$DeviceIdentitiesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.deviceIdentities,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DeviceIdentitiesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.deviceIdentities,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$OutboxOperationsTableTableManager
+    extends
+        RootTableManager<
+          _$CognoteDatabase,
+          $OutboxOperationsTable,
+          OutboxOperationRow,
+          $$OutboxOperationsTableFilterComposer,
+          $$OutboxOperationsTableOrderingComposer,
+          $$OutboxOperationsTableAnnotationComposer,
+          $$OutboxOperationsTableCreateCompanionBuilder,
+          $$OutboxOperationsTableUpdateCompanionBuilder,
+          (OutboxOperationRow, $$OutboxOperationsTableReferences),
+          OutboxOperationRow,
+          PrefetchHooks Function({bool ownerId, bool deviceId})
+        > {
+  $$OutboxOperationsTableTableManager(
+    _$CognoteDatabase db,
+    $OutboxOperationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OutboxOperationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OutboxOperationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OutboxOperationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> operationId = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> aggregateType = const Value.absent(),
+                Value<String> aggregateId = const Value.absent(),
+                Value<String> operationKind = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxOperationsCompanion(
+                operationId: operationId,
+                ownerId: ownerId,
+                deviceId: deviceId,
+                aggregateType: aggregateType,
+                aggregateId: aggregateId,
+                operationKind: operationKind,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String operationId,
+                required String ownerId,
+                required String deviceId,
+                required String aggregateType,
+                required String aggregateId,
+                required String operationKind,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => OutboxOperationsCompanion.insert(
+                operationId: operationId,
+                ownerId: ownerId,
+                deviceId: deviceId,
+                aggregateType: aggregateType,
+                aggregateId: aggregateId,
+                operationKind: operationKind,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$OutboxOperationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({ownerId = false, deviceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ownerId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ownerId,
+                                referencedTable:
+                                    $$OutboxOperationsTableReferences
+                                        ._ownerIdTable(db),
+                                referencedColumn:
+                                    $$OutboxOperationsTableReferences
+                                        ._ownerIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (deviceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.deviceId,
+                                referencedTable:
+                                    $$OutboxOperationsTableReferences
+                                        ._deviceIdTable(db),
+                                referencedColumn:
+                                    $$OutboxOperationsTableReferences
+                                        ._deviceIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$OutboxOperationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CognoteDatabase,
+      $OutboxOperationsTable,
+      OutboxOperationRow,
+      $$OutboxOperationsTableFilterComposer,
+      $$OutboxOperationsTableOrderingComposer,
+      $$OutboxOperationsTableAnnotationComposer,
+      $$OutboxOperationsTableCreateCompanionBuilder,
+      $$OutboxOperationsTableUpdateCompanionBuilder,
+      (OutboxOperationRow, $$OutboxOperationsTableReferences),
+      OutboxOperationRow,
+      PrefetchHooks Function({bool ownerId, bool deviceId})
+    >;
 
 class $CognoteDatabaseManager {
   final _$CognoteDatabase _db;
@@ -4656,4 +5828,6 @@ class $CognoteDatabaseManager {
       $$ObservationsTableTableManager(_db, _db.observations);
   $$LocalAssetsTableTableManager get localAssets =>
       $$LocalAssetsTableTableManager(_db, _db.localAssets);
+  $$OutboxOperationsTableTableManager get outboxOperations =>
+      $$OutboxOperationsTableTableManager(_db, _db.outboxOperations);
 }

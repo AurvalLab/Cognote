@@ -5,6 +5,7 @@ import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 
 import '../../identity/domain/identity_repository.dart';
+import '../../outbox/domain/outbox_operation.dart';
 import '../data/file_asset_storage.dart';
 import '../domain/image_observation_exceptions.dart';
 import '../domain/image_source.dart';
@@ -12,6 +13,7 @@ import '../domain/local_asset.dart';
 import '../domain/observation.dart';
 import '../domain/observation_exceptions.dart';
 import '../domain/observation_id_generator.dart';
+import '../domain/observation_outbox_mutation_repository.dart';
 import '../domain/observation_repository.dart';
 
 export '../domain/image_observation_exceptions.dart';
@@ -21,8 +23,10 @@ class PreparedImageObservationCommand {
   const PreparedImageObservationCommand({
     required this.observationId,
     required this.localAssetId,
+    this.operationId = '',
     required this.caption,
     required this.capturedAtUtc,
+    required this.createdAt,
     required this.timezoneOffset,
     required this.preparedUri,
     required this.finalUri,
@@ -35,8 +39,10 @@ class PreparedImageObservationCommand {
 
   final String observationId;
   final String localAssetId;
+  final String operationId;
   final String? caption;
   final DateTime capturedAtUtc;
+  final DateTime createdAt;
   final int timezoneOffset;
   final String preparedUri;
   final String finalUri;
@@ -50,6 +56,7 @@ class PreparedImageObservationCommand {
 class CreateImageObservation {
   const CreateImageObservation({
     required ObservationRepository repository,
+    ObservationOutboxMutationRepository? outboxMutationRepository,
     required LocalIdentity localIdentity,
     required ObservationIdGenerator observationIdGenerator,
     required ObservationIdGenerator localAssetIdGenerator,
@@ -57,6 +64,7 @@ class CreateImageObservation {
     required Clock clock,
   }) : this._(
          repository,
+         outboxMutationRepository,
          localIdentity,
          observationIdGenerator,
          localAssetIdGenerator,
@@ -66,6 +74,7 @@ class CreateImageObservation {
 
   const CreateImageObservation._(
     this._repository,
+    this._outboxMutationRepository,
     this._localIdentity,
     this._observationIdGenerator,
     this._localAssetIdGenerator,
@@ -74,6 +83,7 @@ class CreateImageObservation {
   );
 
   final ObservationRepository _repository;
+  final ObservationOutboxMutationRepository? _outboxMutationRepository;
   final LocalIdentity _localIdentity;
   final ObservationIdGenerator _observationIdGenerator;
   final ObservationIdGenerator _localAssetIdGenerator;
@@ -95,6 +105,11 @@ class CreateImageObservation {
     }
     final observationId = _validatedId(_observationIdGenerator.generate());
     final assetId = _validatedId(_localAssetIdGenerator.generate());
+    final operationId = _validatedId(_observationIdGenerator.generate());
+    final createdAt = _clock();
+    if (!createdAt.isUtc) {
+      throw InvalidCapturedAtException();
+    }
     try {
       await _assetStorage.reconcile(_repository);
     } catch (error) {
@@ -132,8 +147,10 @@ class CreateImageObservation {
       return PreparedImageObservationCommand(
         observationId: observationId,
         localAssetId: assetId,
+        operationId: operationId,
         caption: caption == null || caption.trim().isEmpty ? null : caption,
         capturedAtUtc: capturedAt,
+        createdAt: createdAt,
         timezoneOffset: timezoneOffset,
         preparedUri: preparedUri,
         finalUri: finalUri,
@@ -170,7 +187,6 @@ class CreateImageObservation {
     } else if (await _hash(command.finalUri) != command.sha256) {
       throw AssetDestinationConflictException();
     }
-    final now = _clock();
     final aggregate = ImageObservationAggregate(
       observation: Observation(
         id: command.observationId,
@@ -183,8 +199,8 @@ class CreateImageObservation {
         cloudAiPolicy: CloudAiPolicy.localOnly,
         syncPolicy: SyncPolicy.localOnly,
         createdByDeviceId: _localIdentity.device.id,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: command.createdAt,
+        updatedAt: command.createdAt,
         deletedAt: null,
         serverRevision: null,
       ),
@@ -201,12 +217,27 @@ class CreateImageObservation {
         sha256: command.sha256,
         exifRemoved: false,
         uploadState: 'local_only',
-        createdAt: now,
-        updatedAt: now,
+        createdAt: command.createdAt,
+        updatedAt: command.createdAt,
       ),
     );
     try {
-      return await _repository.createImage(aggregate);
+      final mutationRepository = _outboxMutationRepository;
+      if (mutationRepository == null) {
+        throw StateError('Observation outbox mutation repository is required');
+      }
+      return await mutationRepository.createImageWithOutbox(
+        aggregate: aggregate,
+        operation: OutboxOperation(
+          operationId: command.operationId,
+          ownerId: aggregate.observation.ownerId,
+          deviceId: aggregate.observation.createdByDeviceId,
+          aggregateType: 'observation',
+          aggregateId: aggregate.observation.id,
+          operationKind: 'observation_upsert',
+          createdAt: command.createdAt,
+        ),
+      );
     } catch (persistenceError) {
       if (!movedPreparedToFinal) {
         rethrow;

@@ -135,7 +135,7 @@ Future<void> _openAndVerifyV3(File file, int sourceVersion) async {
     final version = await database
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.read<int>('user_version'), 3);
+    expect(version.read<int>('user_version'), 4);
     final principal = await database
         .customSelect("SELECT id FROM principals WHERE id = 'legacy-owner'")
         .getSingle();

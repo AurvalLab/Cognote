@@ -1,5 +1,5 @@
-import 'observation.dart';
 import 'local_asset.dart';
+import 'observation.dart';
 import 'observation_mutation_outcome.dart';
 
 class ImageObservationAggregate {

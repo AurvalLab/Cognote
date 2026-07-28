@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../database/cognote_database.dart' hide Observation;
 import '../identity/application/initialize_local_identity.dart';
@@ -18,7 +19,12 @@ import '../observation/domain/observation.dart';
 import '../observation/domain/observation_detail.dart';
 import '../observation/domain/observation_id_generator.dart';
 import '../observation/domain/observation_mutation_outcome.dart';
+import '../observation/domain/observation_outbox_mutation_repository.dart';
 import '../observation/domain/observation_search_result.dart';
+
+import '../outbox/data/drift_outbox_query_repository.dart';
+import '../outbox/domain/outbox_operation.dart';
+import '../outbox/domain/outbox_query_repository.dart';
 
 typedef CognoteDatabaseFactory = CognoteDatabase Function();
 typedef IdentityInitializer =
@@ -35,6 +41,8 @@ class CognoteApplication {
     this._watchObservationSearch,
     this._getObservationDetail,
     this._observationRepository,
+    this._outboxMutationRepository,
+    this._outboxQueryRepository,
     this._clock,
     this._assetStorage,
   );
@@ -47,6 +55,8 @@ class CognoteApplication {
   final WatchObservationSearch _watchObservationSearch;
   final GetObservationDetail _getObservationDetail;
   final DriftObservationRepository _observationRepository;
+  final ObservationOutboxMutationRepository? _outboxMutationRepository;
+  final OutboxQueryRepository _outboxQueryRepository;
   final UtcNow _clock;
   final FileAssetStorage _assetStorage;
   Future<void>? _closeFuture;
@@ -69,20 +79,22 @@ class CognoteApplication {
               InitializeLocalIdentity(DriftIdentityRepository(database))();
       final localIdentity = await initializeIdentity(database);
 
+      final repository = DriftObservationRepository(database);
       final createTextObservation = CreateTextObservation(
-        repository: DriftObservationRepository(database),
+        repository: repository,
+        outboxMutationRepository: repository,
         localIdentity: localIdentity,
         idGenerator:
             observationIdGenerator ?? const UuidV7ObservationIdGenerator(),
         utcNow: utcNow ?? _utcNow,
       );
-      final repository = DriftObservationRepository(database);
       final storage =
           assetStorage ??
           await (assetStorageFactory ??
               () => _defaultAssetStorage(utcNow ?? _utcNow))();
       final createImageObservation = CreateImageObservation(
         repository: repository,
+        outboxMutationRepository: repository,
         localIdentity: localIdentity,
         observationIdGenerator:
             observationIdGenerator ?? const UuidV7ObservationIdGenerator(),
@@ -112,6 +124,8 @@ class CognoteApplication {
         watchObservationSearch,
         getObservationDetail,
         repository,
+        repository,
+        DriftOutboxQueryRepository(database),
         utcNow ?? _utcNow,
         storage,
       );
@@ -149,20 +163,56 @@ class CognoteApplication {
       .watchDeletedTimeline(ownerId: localIdentity.principal.id);
 
   Future<ObservationMutationOutcome> deleteObservation(String observationId) {
-    return _observationRepository.deleteObservation(
+    final createdAt = _clock();
+    return _requireOutboxMutationRepository().deleteWithOutbox(
       ownerId: localIdentity.principal.id,
       observationId: observationId,
-      deletedAt: _clock(),
+      deletedAt: createdAt,
+      operation: _operation(
+        operationId: const Uuid().v7(),
+        aggregateId: observationId,
+        operationKind: 'observation_delete',
+        createdAt: createdAt,
+      ),
     );
   }
 
   Future<ObservationMutationOutcome> restoreObservation(String observationId) {
-    return _observationRepository.restoreObservation(
+    final createdAt = _clock();
+    return _requireOutboxMutationRepository().restoreWithOutbox(
       ownerId: localIdentity.principal.id,
       observationId: observationId,
-      restoredAt: _clock(),
+      restoredAt: createdAt,
+      operation: _operation(
+        operationId: const Uuid().v7(),
+        aggregateId: observationId,
+        operationKind: 'observation_upsert',
+        createdAt: createdAt,
+      ),
     );
   }
+
+  Future<List<OutboxOperation>> listPendingOutbox() =>
+      _outboxQueryRepository.listPending(ownerId: localIdentity.principal.id);
+
+  ObservationOutboxMutationRepository _requireOutboxMutationRepository() =>
+      _outboxMutationRepository ??
+      (throw StateError('Observation outbox mutation repository is required'));
+
+  OutboxOperation _operation({
+    required String operationId,
+    required String aggregateId,
+    required String operationKind,
+    required DateTime createdAt,
+  }) => OutboxOperation(
+    operationId: operationId,
+    ownerId: localIdentity.principal.id,
+    deviceId: localIdentity.device.id,
+    aggregateType: 'observation',
+    aggregateId: aggregateId,
+    operationKind: operationKind,
+    createdAt: createdAt,
+  );
 
   File resolveLocalAsset(String localUri) =>
       _assetStorage.resolveLocalFile(localUri);

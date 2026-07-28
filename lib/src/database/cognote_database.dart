@@ -9,16 +9,28 @@ import '../identity/data/tables/device_identities.dart';
 import '../identity/data/tables/principals.dart';
 import '../observation/data/tables/local_assets.dart';
 import '../observation/data/tables/observations.dart';
+import '../outbox/data/tables/outbox_operations.dart';
 
 part 'cognote_database.g.dart';
 
 @DriftDatabase(
-  tables: [Principals, DeviceIdentities, Observations, LocalAssets],
+  tables: [
+    Principals,
+    DeviceIdentities,
+    Observations,
+    LocalAssets,
+    OutboxOperations,
+  ],
 )
 class CognoteDatabase extends _$CognoteDatabase {
-  CognoteDatabase(super.executor, {this.beforeFtsMigration});
+  CognoteDatabase(
+    super.executor, {
+    this.beforeFtsMigration,
+    this.beforeOutboxMigration,
+  });
 
   final Future<void> Function()? beforeFtsMigration;
+  final Future<void> Function()? beforeOutboxMigration;
 
   factory CognoteDatabase.open({Directory? directory}) {
     return CognoteDatabase(
@@ -32,7 +44,7 @@ class CognoteDatabase extends _$CognoteDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +56,7 @@ class CognoteDatabase extends _$CognoteDatabase {
         "ON principals (kind, status) "
         "WHERE kind = 'anonymous' AND status = 'active'",
       );
+      await createOutboxOperationsIndex();
       await createObservationSearchSchema();
       await rebuildObservationSearchIndex();
     },
@@ -68,6 +81,11 @@ class CognoteDatabase extends _$CognoteDatabase {
             throw StateError('Observation search index integrity check failed');
           }
         }
+        if (from < 4) {
+          await beforeOutboxMigration?.call();
+          await migrator.createTable(outboxOperations);
+          await createOutboxOperationsIndex();
+        }
       });
     },
     beforeOpen: (details) async {
@@ -75,6 +93,11 @@ class CognoteDatabase extends _$CognoteDatabase {
       await customStatement('PRAGMA busy_timeout = 5000');
     },
   );
+
+  Future<void> createOutboxOperationsIndex() => customStatement('''
+    CREATE INDEX outbox_operations_owner_created_operation
+    ON outbox_operations (owner_id, created_at, operation_id)
+  ''');
 
   Future<void> createObservationSearchSchema() async {
     await customStatement('''

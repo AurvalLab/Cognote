@@ -1,0 +1,1 @@
+class OutboxOperationConflictException implements Exception {}
