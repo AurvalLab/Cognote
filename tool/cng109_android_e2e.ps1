@@ -3,14 +3,15 @@ param(
   [string]$Adb = 'D:\Android\Sdk\platform-tools\adb.exe',
   [string]$Serial = 'emulator-5554',
   [string]$Flutter = 'flutter',
-  [string]$ArtifactParent = 'D:\Hermes\cognote-agent-artifacts\cng-109-e5-o3'
+  [string]$ArtifactParent = 'D:\Hermes\cognote-agent-artifacts\cng-109-e5-o3',
+  [string]$ExpectedBranch = 'feat/cng-109',
+  [string]$ExpectedHead = ''
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $package = 'com.cognote.cognote.cng109'
 $activity = 'com.cognote.cognote.cng109/com.cognote.cognote.MainActivity'
-$expectedHead = '60a113a4811a041a1eef0fc2108be02610d508bb'
 $runId = 'cng109-{0}-{1}' -f (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ'), ([guid]::NewGuid().ToString('N').Substring(0, 4))
 $artifactRoot = Join-Path $ArtifactParent $runId
 $primaryFailure = $null
@@ -31,6 +32,9 @@ $finalStaged = @()
 $finalChanged = @()
 $finalUnexpected = @()
 $finalDiffCheckExit = $null
+$finalBranch = $null
+$finalHead = $null
+$resolvedExpectedHead = $null
 $allowedChanges = @(
   'android/app/build.gradle.kts',
   'pubspec.yaml',
@@ -99,8 +103,19 @@ try {
   Assert-LastExitCode 'git rev-parse HEAD'
   $branch = (git branch --show-current).Trim()
   Assert-LastExitCode 'git branch --show-current'
-  if ($branch -ne 'feat/cng-109' -or $head -ne $expectedHead) {
-    throw "unexpected Git baseline: $branch $head"
+  if ([string]::IsNullOrWhiteSpace($ExpectedBranch)) {
+    throw 'ExpectedBranch must not be empty'
+  }
+  if ($branch -ne $ExpectedBranch) {
+    throw "unexpected Git branch: expected=$ExpectedBranch actual=$branch"
+  }
+  $resolvedExpectedHead = if ([string]::IsNullOrWhiteSpace($ExpectedHead)) {
+    $head
+  } else {
+    $ExpectedHead
+  }
+  if ($head -ne $resolvedExpectedHead) {
+    throw "unexpected Git HEAD: expected=$resolvedExpectedHead actual=$head"
   }
   $stagedPaths = @(git diff --cached --name-only)
   Assert-LastExitCode 'git diff --cached --name-only'
@@ -160,6 +175,10 @@ try {
     api = $api
     abi = $abi
     gitHead = $head
+    expectedBranch = $ExpectedBranch
+    expectedHead = $resolvedExpectedHead
+    actualBranch = $branch
+    actualHead = $head
     package = $package
     activity = $activity
     strictMode = 'Latest'
@@ -322,7 +341,15 @@ finally {
     if ($finalStaged.Count -gt 0) { Add-CleanupFailure 'final git' "staged files: $($finalStaged -join ', ')" }
     if ($finalUnexpected.Count -gt 0) { Add-CleanupFailure 'final git' "unexpected files: $($finalUnexpected -join ', ')" }
     if ($finalDiffCheckExit -ne 0) { Add-CleanupFailure 'final git' "git diff --check exit=$finalDiffCheckExit" }
-    if ($finalHead -ne $expectedHead -or $finalBranch -ne 'feat/cng-109') { Add-CleanupFailure 'final git' "branch=$finalBranch head=$finalHead" }
+    if (
+      $finalHead -ne $resolvedExpectedHead -or
+      $finalBranch -ne $ExpectedBranch
+    ) {
+      Add-CleanupFailure 'final git' (
+        "expected branch=$ExpectedBranch head=$resolvedExpectedHead; " +
+        "actual branch=$finalBranch head=$finalHead"
+      )
+    }
   } catch { Add-CleanupFailure 'final git' $_ }
 
   try {
@@ -340,6 +367,10 @@ finally {
       finalChanged = $finalChanged
       finalUnexpected = $finalUnexpected
       finalDiffCheckExit = $finalDiffCheckExit
+      finalBranch = $finalBranch
+      finalHead = $finalHead
+      expectedBranch = $ExpectedBranch
+      expectedHead = $resolvedExpectedHead
     }
   } catch { Add-CleanupFailure 'cleanup evidence' $_ }
   Stop-Transcript | Out-Null
