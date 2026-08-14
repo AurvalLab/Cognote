@@ -1,5 +1,7 @@
 # 阶段 0 规格一致性报告
 
+> 历史快照：本报告只证明 2026-07-25 的阶段 0 规格状态。当前仓库已经包含 Flutter/Drift 业务代码；现行状态见 `docs/roadmap/current-plan.md`。
+
 - 检查日期：2026-07-25
 - 工作区：`D:\Hermes\cognote`
 - 范围：产品、架构、隐私、AI、同步、API、质量、路线和 ADR

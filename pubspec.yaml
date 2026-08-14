@@ -1,5 +1,6 @@
+# Technical package identifier retained during the Mnora brand migration.
 name: cognote
-description: "Cognote Android application."
+description: "Mnora · 见藏 Android application."
 publish_to: 'none'
 version: 0.1.0+1
 

@@ -1,6 +1,8 @@
 # Cognote 阶段 0 → 阶段 1 工程交接
 
-> 本文件是新会话进入 Cognote 项目的唯一工程交接入口。
+> 历史快照：本文记录阶段 0 刚结束时的仓库状态，已不再是当前交接入口。文中的 Cognote 是 Mnora · 见藏的前产品名。请改读 `docs/README.md`、`docs/product/brand.md`、`docs/roadmap/current-plan.md` 和 `docs/handoff/codex-handoff-2026-08-14.md`。
+
+> 本文件曾是新会话进入 Cognote 项目的工程交接入口。
 >
 > 交接原则：先阅读本文件，再按第 8 节顺序阅读规格。不得绕过冻结的 P0 决策直接设计或编码。
 

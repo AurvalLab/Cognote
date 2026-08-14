@@ -1,87 +1,113 @@
-# Cognote MVP 任务拆分
+# Mnora · 见藏全阶段路线图
 
-## 阶段 0：规格与原型
+更新日期：2026-08-14。当前任务状态、决策门和详细验收以 [`current-plan.md`](current-plan.md) 为准。
 
-- CNG-001 冻结 PRD、非目标和术语；
-- CNG-002 完成三种数据模式与授权矩阵；
-- CNG-003 完成卡片原型用户测试；
-- CNG-004 冻结状态机和数据模型；
-- CNG-005 冻结 AI 来源协议和 KnowledgeCard Schema；
-- CNG-006 冻结 OpenAPI outline 和错误模型；
-- CNG-007 完成隐私数据流和删除流程；
-- CNG-008 冻结 ADR；
-- CNG-009 建立 AI 评测集规范与产品指标。
+状态定义：`完成` 表示已进入当前代码基线；`待验收` 表示已有实现但尚未冻结结论；`待冻结` 表示必须先明确范围；`计划中` 不代表已授权开发。
 
-退出：`docs/open-decisions.md` 中 P0 决策均已拍板，规格检查通过。
+## 阶段 0：规格冻结（历史完成）
 
-## 阶段 1：本地纵向切片
+| 任务 | 内容 | 状态 |
+|---|---|---|
+| CNG-001 | PRD、非目标和术语 | 完成 |
+| CNG-002 | 数据模式与授权矩阵 | 完成 |
+| CNG-003 | 卡片原型用户测试 | 按阶段 0 报告标记完成；原始研究证据未在本次审计复核 |
+| CNG-004 | 状态机和数据模型 | 完成 |
+| CNG-005 | AI 来源协议和 KnowledgeCard Schema | 完成 |
+| CNG-006 | OpenAPI outline 和错误模型 | 完成 |
+| CNG-007 | 隐私数据流和删除流程 | 完成 |
+| CNG-008 | ADR-001～012 | 完成 |
+| CNG-009 | AI 评测规范与产品指标 | 完成 |
 
-- CNG-100 匿名 Principal、DeviceIdentity 与安全安装标识；
-- CNG-101 Flutter/Drift 最小工程；
-- CNG-102 Observation 与 LocalAsset 表及迁移；
-- CNG-103 文字记录本地创建；
-- CNG-104 图片记录本地创建；
-- CNG-105 时间线与详情；
-- CNG-106 删除/恢复；
-- CNG-107 本地 FTS；
-- CNG-107A private_local 独立加密存储、Keychain/Keystore、解锁与后台遮蔽；
-- CNG-108 持久化 Outbox 骨架；
-- CNG-109 强杀恢复和离线端到端测试；
-- CNG-110 最小埋点与隐私过滤。
+退出记录：6 项 P0 决策已确认，阶段 0 一致性报告通过。该结论是历史基线，不代表后续代码已经实现全部规格。
 
-退出：飞行模式可完成创建、浏览、搜索、删除和恢复；强杀不丢数据。
+## 阶段 1：可靠的本地记录
 
-## 阶段 2：AI 卡片闭环
+| 任务 | 内容 | 状态 | 关键依赖或边界 |
+|---|---|---|---|
+| CNG-100 | 匿名 Principal、DeviceIdentity 与安装标识 | 完成 | 本地身份 |
+| CNG-101 | Flutter/Drift 最小工程 | 完成 | Application bootstrap |
+| CNG-102 | Observation 与 LocalAsset schema/migration | 完成 | schemaVersion 2 |
+| CNG-103 | 文字记录本地创建用例 | 完成 | 无生产 UI |
+| CNG-104 | 图片记录本地创建用例 | 完成 | 无生产 UI |
+| CNG-105 | 时间线与详情 | 完成 | 只读详情 |
+| CNG-106 | 删除与恢复 | 完成 | 软删除/墓碑 |
+| CNG-107 | 本地 FTS | 完成 | 当前索引 raw_text |
+| CNG-108 | 持久化 Outbox 骨架 | 完成 | 无 payload/ack/retry/网络消费 |
+| CNG-109 | 强杀恢复和离线端到端证据 | 待验收 | 模拟器证据是否满足门槛待决策 |
+| CNG-111 | 生产文字/图片创建 UI 与本地闭环 | 计划中 | 本次规划审计新增 |
+| CNG-112 | 本地编辑、FTS 更新与 Outbox 原子性 | 计划中 | 本次规划审计新增；兑现离线编辑承诺 |
+| CNG-107A | `private_local` 独立加密存储与遮蔽 | 待冻结 | 暴露私密入口或上线上传能力前必须完成 |
+| CNG-110 | 最小产品事件与隐私过滤 | 待冻结 | 阶段 1 默认本地 sink，不引入远程 SDK |
+
+阶段 1 退出：真实生产 UI 在飞行模式下完成创建、编辑、浏览、搜索、删除和恢复；Android force-stop 后数据和待处理操作不丢失；私密与埋点边界没有虚假承诺；质量门禁与负责人验收通过。
+
+## 阶段 2：AI 卡片最小闭环
+
+阶段 2 采用纵向里程碑推进，不先把所有基础设施横向铺完。
+
+### 2A：区域与持久任务地基
 
 - CNG-201 FastAPI 模块化单体脚手架；
-- CNG-201A `cn-mainland` 区域配置、AI Gateway 和跨境路由阻断测试；
+- CNG-201A `cn-mainland` 区域配置、AI Gateway 和跨境阻断测试；
 - CNG-202 PostgreSQL/Alembic 基线；
+- CNG-205 AIJob/Attempt 状态机、幂等和持久恢复；
+- CNG-206 单一 Provider capability adapter；
+- CNG-206A Provider 接口与区域能力注册。
+
+### 2B：授权、上传与删除
+
 - CNG-203 ConsentSnapshot；
 - CNG-203A 端侧敏感性预检、动态确认和上传副本预览/脱敏；
 - CNG-204 私有对象上传；
-- CNG-204A 分析副本删除状态机、生命周期兜底、补偿队列与报警；
-- CNG-204B normal/private_local 转换、云端级联清理与异常恢复；
-- CNG-205 AIJob/Attempt 状态机与幂等；
-- CNG-206 Provider capability adapter；
-- CNG-206A Vision/TextLLM/Embedding/OCR Provider 接口及区域能力注册；
-- CNG-207 植物图片质量与 Vision/OCR 路由；
-- CNG-207A plant/general/text/uncertain 分类路由；
-- CNG-208 KnowledgeCard envelope、PlantCardV1、TextCardV1、GeneralImageCardV1 和 Pydantic 校验；
-- CNG-209 来源与高风险策略；
-- CNG-210 CardVersion 持久化；
-- CNG-211 Flutter 处理状态与重试/取消；
-- CNG-212 卡片确认和 UserCorrection；
-- CNG-213 真实端到端测试与 AI 回归集；
-- CNG-214 成本、日志和 trace。
+- CNG-204A 分析副本删除状态机、生命周期兜底、补偿与报警；
+- CNG-204B normal/private_local 转换与云端级联清理。
 
-退出：真实设备和真实供应商完成“本地记录—授权—上传—AI—确认/纠错”，故障测试通过。
+### 2C：第一条可验证卡片切片
+
+- CNG-207 输入质量检查与最小路由；
+- CNG-207A plant/general/text/uncertain 分类路由；
+- CNG-208 KnowledgeCard envelope 与分类型 Schema；
+- CNG-209 Provenance 和高风险策略；
+- CNG-210 CardVersion 持久化；
+- CNG-211 Flutter 处理状态、取消和重试；
+- CNG-212 卡片确认与 UserCorrection；
+- CNG-213 真实设备、真实 Provider 端到端和 AI 回归集；
+- CNG-214 成本、结构化日志和 trace。
+
+执行约束：第一条切片先固定一个路由、一个 Provider、一个 Schema；成功、失败、取消、删除和授权撤销全部可验证后再扩展其他路由。
+
+阶段 2 退出：真实设备完成“本地记录—授权—上传—AI—确认/纠错”；失败不丢原始记录；分析副本删除、区域边界、高风险策略和指标门槛通过。
 
 ## 阶段 3：账号与同步
 
 - CNG-301 可选认证、设备注册与 PrincipalMerge；
-- CNG-301A 匿名数据/AI 记录/额度流水的幂等无损归并测试；
-- CNG-302 SyncOperation/ServerChange；
+- CNG-301A 匿名数据、AI 记录和额度流水的幂等无损归并；
+- CNG-302 完整 SyncOperation/ServerChange；
 - CNG-303 push/pull/cursor；
-- CNG-304 冲突矩阵实现；
+- CNG-304 冲突矩阵和冲突 UI；
 - CNG-305 媒体备份独立开关；
 - CNG-306 双设备故障注入；
-- CNG-307 数据导出、授权撤销、账号删除；
+- CNG-307 数据导出、授权撤销和账号删除；
 - CNG-308 删除链路审计。
 
-退出：重复、乱序、中断、并发编辑、删除/恢复和越权测试通过。
+退出：重复、乱序、中断、并发编辑、删除/恢复、匿名归并和越权访问测试通过，不发生静默覆盖。
 
-## 阶段 4：检索与回顾
+## 阶段 4：检索与回顾（条件解锁）
 
-仅在检索进入条件满足后：
+满足 `docs/quality/mvp-metrics.md` 的检索进入条件后，才排期：
 
 - CNG-401 服务端 FTS 与过滤；
 - CNG-402 真实检索问题集；
-- CNG-403 接受卡片 Embedding；
+- CNG-403 仅对接受卡片生成 Embedding；
 - CNG-404 混合召回与评测；
 - CNG-405 带 Fact/Provenance 引用的问答；
 - CNG-406 每日回顾与历史上的今天；
-- CNG-407 私密/删除内容排除测试。
+- CNG-407 私密和删除内容排除测试。
+
+## 阶段 5：关联与个人洞察（研究项）
+
+没有预设交付任务。只有长期留存、真实找回需求、用户主动授权、可解释性和删除能力同时成立，才另行立项并冻结边界。
 
 ## 单任务交付模板
 
-每个任务必须声明：背景、范围、非范围、验收标准、数据/API 变化、测试命令、实际结果、风险。一次只完成一个边界清晰的任务；核心技术或模型变化先写 ADR。
+每个任务必须声明：背景、目标、范围、非范围、依赖、验收标准、数据/API 变化、隐私影响、测试命令、实际结果、证据位置和遗留风险。核心架构或产品承诺变化先写决策记录；一次只交付一个边界清晰的任务。

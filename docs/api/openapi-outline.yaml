@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Cognote API Outline
+  title: Mnora API Outline
   version: 0.1.0
   description: >-
     Stage-0 contract outline. Local record creation is a client-side operation;

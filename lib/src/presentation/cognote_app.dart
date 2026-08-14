@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../application/cognote_application.dart';
+import '../product_identity.dart';
 import 'deleted_observations_page.dart';
 import 'observation_detail_page.dart';
 import 'observation_search_page.dart';
@@ -33,6 +34,7 @@ class _CognoteAppState extends State<CognoteApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    title: productDisplayName,
     home: Builder(
       builder: (context) => TimelinePage(
         timeline: widget.application.watchTimeline(),
