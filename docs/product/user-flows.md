@@ -1,4 +1,4 @@
-# Cognote MVP 用户流程
+# Mnora · 见藏 MVP 用户流程
 
 ## 1. 首次启动
 

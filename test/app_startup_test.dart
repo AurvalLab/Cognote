@@ -8,6 +8,7 @@ import 'package:cognote/src/identity/domain/principal.dart' as domain;
 import 'package:cognote/src/observation/data/file_asset_storage.dart';
 import 'package:cognote/src/presentation/cognote_app.dart';
 import 'package:cognote/src/presentation/timeline_page.dart';
+import 'package:cognote/src/product_identity.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +43,17 @@ void main() {
       );
 
       expect(find.byType(MaterialApp), findsOneWidget);
+      expect(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).title,
+        productDisplayName,
+      );
+      expect(productEnglishName, 'Mnora');
+      expect(productChineseName, '见藏');
+      expect(
+        productVision,
+        'Mnora is a personal memory system that learns how you see the world.',
+      );
+      expect(productTagline, '把所见，变成可找回的记忆。');
       expect(find.byType(TimelinePage), findsOneWidget);
       expect(initializationCount, 1);
 

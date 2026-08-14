@@ -67,7 +67,7 @@ quality → OCR/vision → classify → retrieve(optional)
 ### 区域边界
 
 - MVP 仅部署 `cn-mainland`：API、PostgreSQL、Redis、对象存储、日志、任务队列和优先 AI Provider 均位于中国大陆。
-- 客户端只访问 Cognote API，不直接访问 AI 供应商；AI Gateway 按 `home_region`、数据驻留和授权范围选择 Provider。
+- 客户端只访问 Mnora API，不直接访问 AI 供应商；AI Gateway 按 `home_region`、数据驻留和授权范围选择 Provider。
 - 主供应商故障不得触发境外无感 fallback。
 - 未来 `global` 是独立 API、数据库、对象存储和 Provider 栈，不与大陆生产数据实时互通。
 - MVP 不部署第二生产区域，不做跨境复制或双活。

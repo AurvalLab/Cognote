@@ -1,8 +1,10 @@
-# Cognote MVP 产品需求文档
+# Mnora · 见藏 MVP 产品需求文档
 
 ## 1. 产品定位
 
-Cognote 帮助用户把现实世界中的观察保存为可编辑、可追溯的 AI 知识卡片，并在未来重新找回。
+> **Mnora is a personal memory system that learns how you see the world.**
+
+Mnora · 见藏帮助用户把现实世界中的观察保存为可编辑、可追溯的 AI 知识卡片，并在未来重新找回。
 
 MVP 核心假设：
 
