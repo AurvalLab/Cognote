@@ -153,7 +153,7 @@ P1 待决策：DEC-007（Provider fallback）、DEC-008（MVP-B 公开测试）�
 | CNG-107 | 本地 FTS | 已提交 |
 | CNG-107A | private_local 独立加密存储、Keychain/Keystore | **未开始** |
 | CNG-108 | 持久化 Outbox 骨架 | 已提交 |
-| CNG-109 | 强杀恢复和离线端到端测试 | **已提交 3 个 commit，验收收尾状态未冻结** |
+| CNG-109 | 强杀恢复和离线端到端测试 | **已验收关闭；API 35 物理真机验证移至阶段 1 发布门禁** |
 | CNG-110 | 最小埋点与隐私过滤 | **未开始** |
 | CNG-111 | 生产创建入口与本地记录 UI 闭环 | **规划新增，未开始** |
 | CNG-112 | 本地编辑与 FTS/Outbox 一致性 | **规划新增，未开始** |
@@ -336,15 +336,15 @@ git diff --check
 
 ---
 
-## 10. 当前工作区待决策风险点（Codex 与负责人必须对齐）
+## 10. 当前风险点与已关闭结论（Codex 与负责人必须对齐）
 
-以下为本交接时仍需显式处理或持续注意的状态问题，Codex 不得顺手清理：
+第 1、2、6 项仍需显式处理或持续注意，Codex 不得顺手清理；第 3～5 项记录已经关闭的事实：
 
 1. **`cognote-agent-artifacts/` 位于仓库根目录且未跟踪**：不得删除、修改或提交。Git 写操作必须继续使用精确文件白名单，避免误纳；是否移回仓库外或加入精确忽略规则仍需负责人单独决策。
 2. **`pubspec.lock` 有未提交改动**（117+/109-，近期 `flutter pub get` 重排）。需确认是否提交、还是 revert 回 CNG-109 基线。
-3. **Mnora 品牌变更仍在 Draft PR #1**：`codex/mnora-brand` 已推送，提交 `56c603e` 尚未进入 `master`。新任务开始前必须核验 PR 状态，不得假定已合并。
-4. **CNG-109 缺规格冻结报告/handoff**：三个 commit 已直接落在 master，未见《CNG-109 规格冻结报告》或 handoff 文档，需负责人确认 CNG-109 是否已验收关闭，还是仍需补冻结报告。
-5. **E5/O3 证据设备等级**：最新证据 `cng109-20260803T131234Z-7ba0` 的 `run-metadata.json` 显示 `serial=emulator-5554, qemu=1, api=35`，即 API 35 **模拟器**，非物理真机。战略规划要求"真实 Android API 35 E5/O3 执行"，需确认模拟器证据是否满足验收，还是必须补真机证据。
+3. **Mnora 品牌变更已合并**：PR #1 已通过普通 merge commit 合入 `master`，merge commit 为 `d3c6f0b1fdafe8657bde6a26e360dd5773af8cd1`。
+4. **CNG-109 已补验收报告并关闭**：报告位于 `docs/quality/cng-109-acceptance-2026-08-14.md`；负责人于 2026-08-14 接受 API 35 模拟器证据并关闭 GATE-03/CNG-109。
+5. **E5/O3 设备等级结论已冻结**：最终证据 `cng109-20260814T140844Z-f0a3` 来自 API 35 **模拟器**（`qemu=1`，x86_64）。API 35 物理真机验证移至阶段 1 发布门禁，不再阻塞 CNG-109。
 6. **Android APK 构建需显式选择 JDK**：PATH 默认仍指向 Java 11，但本机已有 `D:\java——JDK`（Temurin JDK 25）。2026-08-14 已仅对命令设置 `JAVA_HOME`，补齐官方构建缓存并完成 `android\gradlew.bat assembleDebug --no-daemon --console=plain`（exit 0）；新 APK 为 178,861,555 bytes，`aapt dump badging` 确认 package=`com.cognote.cognote.cng109`、`targetSdkVersion=36`、label=`Mnora · 见藏`。不得改全局 Java 配置，也不得把 PATH 默认值误报成代码编译失败。
 
 ---
@@ -361,10 +361,19 @@ git diff --check
 
 - 测试包名 `com.cognote.cognote.cng109`，活动 `com.cognote.cognote.MainActivity`。
 - 脚本 `tool/cng109_android_e2e.ps1` 通过 adb 编排：prepare → 飞行模式(O3) → force-stop(E5) → 重启 → verify → 网络恢复 → 测试包卸载。
-- 产物协议 `application-support-export-via-run-as`，产出 `prepare-result.json`、`verify-result.json`、`outbox-before/after.json`、`network-before/airplane/after.json`、`force-stop.log`、`airplane-broadcast.log`、`restore-broadcast.log`、`cleanup-result.json`、`run-metadata.json` 等。
-- 证据目录：`cognote-agent-artifacts/cng-109-e5-o3/`（`master-rerun/` 为空目录；`cng109-20260803T131234Z-7ba0/` 为最新完整证据）。
+- 产物协议 `application-support-export-via-run-as`，产出 `prepare-result.json`、`verify-result.json`、`outbox-before/after.json`、`network-before/after.json`、三阶段离线网络证据、`force-stop.log`、`apk-hashes.json`、`cleanup-result.json`、`run-metadata.json` 等。
+- 最终证据目录位于仓库外：`D:\Hermes\cognote-agent-artifacts\cng-109-e5-o3\cng109-20260814T140844Z-f0a3`；Run ID 为 `cng109-20260814T140844Z-f0a3`，runner SHA-256 为 `30237cb945b9e2aca099b7907453f301e79f376ce7ae8379b7f6c28639bf68a7`。
 
-### 11.3 三种证据强度（必须区分）
+### 11.3 最终验收结论
+
+- PowerShell parser、runner 契约测试和 `git diff --check` 通过。
+- Dart format 87 files / 0 changed，`dart analyze` 0 issues，完整 Dart/Widget 回归 179/179 通过。
+- Android API 35 prepare 与 verify integration test 均为 1/1 通过；三阶段默认网络均为 `none` 且设备内探针失败。
+- `am force-stop` 后 PID 从 `7009` 消失，重启为 `7062`；身份、图片哈希和 6 条 Outbox 强杀前后完全一致。
+- 最终机器断言为 `CNG109_EVIDENCE_ASSERTIONS=PASS`；网络恢复、测试包卸载、证据 worktree 清洁性均通过。
+- 负责人接受 API 35 模拟器设备等级，GATE-03/CNG-109 已关闭；API 35 物理真机验证移至阶段 1 发布门禁。
+
+### 11.4 三种证据强度（必须区分）
 
 ```text
 A. 数据库 close/reopen（真实 SQLite 文件）
@@ -382,8 +391,8 @@ C. 操作系统级 force-stop（adb am force-stop / 飞行模式）
 
 目标：用户可放心记录，系统不因离线、重启、强杀丢内容。
 
-1. **确认 Draft PR #1 的处理**：先审查 Mnora 品牌变更，合并后再从最新 `master` 建立功能分支。
-2. **完成 CNG-109 收尾**：确认 E5/O3 证据等级是否达标，必要时补真机证据；补《CNG-109 规格冻结报告》或明确验收关闭。
+1. **已完成 PR #1**：Mnora 品牌变更已通过普通 merge commit 合入 `master`。
+2. **已完成 CNG-109 收尾**：API 35 模拟器 E5/O3 证据与验收报告已冻结；物理真机验证移至阶段 1 发布门禁。
 3. **完成 CNG-111**：补齐文字和图片的生产创建入口，形成飞行模式下可实际操作的本地记录闭环。
 4. **完成 CNG-112**：支持本地编辑，并冻结 FTS、Outbox、时间字段和删除状态的一致性语义。
 5. **处理 CNG-107A**：先完成 `private_local` 威胁模型与存储方案 spike；在独立加密边界成立前不得暴露伪私密入口。
