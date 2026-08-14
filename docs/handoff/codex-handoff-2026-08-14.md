@@ -1,34 +1,34 @@
-# Cognote 项目交接文档：Codex 接管基线
+# Mnora · 见藏项目交接文档：Codex 接管基线
 
-> 接管后更新：公开产品名已由 Cognote 更新为 **Mnora · 见藏**；本文其余 Cognote 引用作为历史快照和技术标识保留。品牌规范见 `docs/product/brand.md`。后续规划审计已建立 `docs/README.md`、`docs/product/strategy.md` 和 `docs/roadmap/current-plan.md`；发生状态冲突时以这些现行文档、当前代码和可复现证据为准。
+> 当前公开产品名为 **Mnora · 见藏**；本文其余 Cognote 引用仅作为历史快照和暂未迁移的技术标识保留。品牌规范见 `docs/product/brand.md`。发生状态冲突时，按 `docs/roadmap/current-plan.md`、`docs/product/strategy.md`、当前代码、可复现证据的顺序重新核验。
 
-> 生成时间：2026-08-14（Asia/Shanghai）
-> 用途：将本文件完整交给 Codex 会话，使其接续 Cognote 项目的技术负责人、项目经理与开发 Agent 指导者角色。
+> 初始生成：2026-08-14（Asia/Shanghai）
+> 最近更新：2026-08-14（Mnora 品牌、GitHub 治理与账号迁移完成后）
+> 用途：将本文件交给新 Codex 会话，使其接续 Mnora 的技术负责人、项目经理与开发 Agent 指导者角色。
 > 关键原则：本文件是交接记录，不是实时命令结果。Codex 必须先重新核验仓库、远程与测试，之后才能据此推进。
 
 ---
 
 ## 0. 本文档定位
 
-本文件是 Cognote 在 2026-08-14 时点的**全量交接快照**，覆盖四类内容：
+本文件是 Mnora · 见藏在 2026-08-14 时点的**全量交接快照**，覆盖四类内容：
 
 1. 项目内容（是什么、架构、代码现状）；
 2. 进展（阶段 0/1 的真实完成度、CNG-100～109 提交基线）；
 3. 按计划的规划期望（阶段 1 收尾 → 阶段 5 的路线与解锁条件）；
 4. 治理规则与陷阱（Codex 接手后必须遵守的边界）。
 
-历史遗留的两份文档已过时，只作参考，不得当作当前事实：
+历史遗留文档只作参考，不得覆盖现行规划：
 
 - `docs/handoff/stage-0-to-stage-1.md`：写于阶段 0 结束，声称"仓库尚无业务代码"。现已过时。
-- `README.md`：仍声称"阶段 0，不包含 Flutter/FastAPI 业务代码"。现已过时。
 
-真正的产品战略以 `cognote-agent-artifacts/user-attachments/20260803-cng109/项目战略规划-优化版.md`（V3.1）为准。
+当前产品战略以 `docs/product/strategy.md` 为准，执行顺序以 `docs/roadmap/current-plan.md` 为准。`cognote-agent-artifacts/` 中的材料仅作为历史输入与证据，不得反向覆盖已审计的现行文档。
 
 ---
 
 ## 1. 项目定位与产品战略
 
-Cognote 是一款 **Local-First 的个人观察与记忆系统**：
+Mnora · 见藏是一款 **Local-First 的个人观察与记忆系统**：
 
 ```text
 用户记录真实经历（图片/文字）
@@ -41,7 +41,7 @@ Cognote 是一款 **Local-First 的个人观察与记忆系统**：
 
 ### 1.1 与传统知识库的核心差异
 
-| 传统知识库 | Cognote |
+| 传统知识库 | Mnora · 见藏 |
 |---|---|
 | 管理已有资料 | 保存用户与现实世界发生关系的记录 |
 | 整理后搜索 | 记录、理解、确认、找回与回顾 |
@@ -71,14 +71,17 @@ Cognote 是一款 **Local-First 的个人观察与记忆系统**：
 
 | 项 | 值 |
 |---|---|
-| 项目名 | Cognote |
+| 公开产品名 | Mnora · 见藏 |
+| 暂存技术名 | `cognote`（Dart package、数据库、Android applicationId 等，后续单独迁移） |
 | 主仓库 | `D:\Hermes\cognote` |
-| 远程 | `https://github.com/Cosmossssssssssss/Cognote.git` |
+| GitHub 账号 | `AurvalLab`（Profile name：`Aurval`） |
+| 远程 | `https://github.com/AurvalLab/Cognote.git` |
+| Git 作者 | `Aurval <201062279+AurvalLab@users.noreply.github.com>`（仅仓库级配置） |
 | 语言/框架 | Flutter + Dart（SDK `^3.12.2`） |
 | 本地数据库 | Drift `^2.34.2` + SQLite（sqlite3 `^3.5.0`） |
 | 依赖 | crypto、image、path、path_provider、uuid |
 | dev 依赖 | flutter_test、integration_test、flutter_lints、drift_dev、build_runner |
-| 目标平台 | Android（API 35） |
+| 目标平台 | Android；CNG-109 验收设备 API 35；当前构建 `targetSdkVersion=36` |
 | 未来服务端 | FastAPI 模块化单体 + PostgreSQL + 私有对象存储 + Redis/ARQ |
 
 ---
@@ -88,28 +91,34 @@ Cognote 是一款 **Local-First 的个人观察与记忆系统**：
 以下为本次交接时的真实核验结果。Codex 接手后必须重新核验，不得直接采信。
 
 ```text
-branch        = master
-HEAD          = 6d0a320aeda7642e759cb69a6e5467b973624ea5
-本地领先/落后 = 0 / 0（相对本地缓存 origin/master，非实时远程）
+branch        = codex/mnora-brand
+HEAD          = 56c603e43b3aa728038e1918458d0ece60ca89fc
+upstream      = origin/codex/mnora-brand
+master        = 6d0a320aeda7642e759cb69a6e5467b973624ea5
+origin/HEAD   = origin/master
+GitHub default branch = master
+Draft PR      = https://github.com/AurvalLab/Cognote/pull/1
 ```
 
 工作区状态（非 clean）：
 
 ```text
- M pubspec.lock        （117 insertions / 109 deletions，疑为近期 flutter pub get 重排，未提交）
- ?? cognote-agent-artifacts/   （刚被移入仓库根目录，未跟踪，.gitignore 未覆盖）
+ M pubspec.lock               （既有依赖解析差异，未纳入 Mnora 品牌提交）
+ ?? cognote-agent-artifacts/  （仓库根目录内未跟踪，未纳入 Mnora 品牌提交）
 ```
 
 分支与 worktree：
 
 ```text
-本地分支：feat/cng-100、feat/cng-101、feat/cng-102、master（当前）
-远程分支（本地缓存）：origin/feat/cng-100、origin/master
-origin/HEAD   → origin/feat/cng-100（异常，远程默认分支未指向 master）
+本地分支：feat/cng-100、feat/cng-101、feat/cng-102、master、codex/mnora-brand（当前）
+远程分支：origin/feat/cng-100、origin/master、origin/codex/mnora-brand
+origin/HEAD   → origin/master（已修复）
 worktree 列表 = 仅主仓库
 .worktrees/feat-cng-103 = 空残留物理目录（元数据已注销）
 .git/worktrees/          = 空（无活跃 worktree 元数据）
 ```
+
+远程治理结论：`feat/cng-100` 是 `master` 的祖先；CNG-100～109 的实现提交均已进入 `master`，没有遗漏代码。此前 GitHub 贡献统计异常的主因是默认分支错误指向 `feat/cng-100`，现已改为 `master`。历史提交使用 `05jly0325@gmail.com`；该邮箱迁移并验证到 `AurvalLab` 后，无需重写 Git 历史即可重新关联贡献。
 
 ---
 
@@ -146,6 +155,8 @@ P1 待决策：DEC-007（Provider fallback）、DEC-008（MVP-B 公开测试）�
 | CNG-108 | 持久化 Outbox 骨架 | 已提交 |
 | CNG-109 | 强杀恢复和离线端到端测试 | **已提交 3 个 commit，验收收尾状态未冻结** |
 | CNG-110 | 最小埋点与隐私过滤 | **未开始** |
+| CNG-111 | 生产创建入口与本地记录 UI 闭环 | **规划新增，未开始** |
+| CNG-112 | 本地编辑与 FTS/Outbox 一致性 | **规划新增，未开始** |
 
 阶段 1 退出条件：飞行模式可完成创建、浏览、搜索、删除和恢复；强杀不丢数据。仅有 Dart 测试通过不替代 E5/O3 真机/模拟器证据。
 
@@ -166,6 +177,7 @@ e2bde73 feat: add local observation search                  (CNG-107)
 60a113a test: cover application restart recovery            (CNG-109)
 43e3eac test: add android force-stop recovery coverage      (CNG-109)
 6d0a320 test: parameterize android recovery baselines       (CNG-109)
+56c603e feat: rebrand product as Mnora                      (Draft PR #1，尚未进入 master)
 ```
 
 ---
@@ -271,13 +283,13 @@ branch -D / worktree remove --force / worktree prune /
 
 ```text
 只读审计 → 规格冻结 → 创建 branch/worktree → 开发与测试 → 人工 Diff 审查
-→ 精确白名单暂存 → staged Diff 审查 → 普通 commit → --ff-only merge
-→ master 全量门禁 → 普通 push → 远程核验 → worktree 清理 → branch -d
+→ 精确白名单暂存 → staged Diff 审查 → 普通 commit → 推送 topic branch
+→ Draft PR（base=master）→ CI/人工审查 → 负责人授权合并 → 远程核验
 ```
 
 ### 8.4 合并与推送
 
-只允许 `git merge --ff-only feat/cng-xxx`；禁止 merge commit/squash/cherry-pick/rebase。推送用 `git push origin master`（普通 push），不推 feature branch，不 force。
+默认从最新 `master` 创建 `codex/<topic>` 分支，普通推送 topic branch，并创建显式以 `master` 为基线的 Draft PR。禁止直接推送 `master`、force push、rebase、cherry-pick，以及未经授权自行合并 PR。合并策略由负责人结合 PR 与 GitHub 设置决定；不得为了补齐历史记录伪造已完成的 CNG 分支。删除本地/远程分支或 worktree 前必须单独确认，不能把“PR 已合并”视为删除授权。
 
 ---
 
@@ -326,13 +338,14 @@ git diff --check
 
 ## 10. 当前工作区待决策风险点（Codex 与负责人必须对齐）
 
-以下为本交接时发现、尚未解决的状态问题，Codex 不得擅自处理：
+以下为本交接时仍需显式处理或持续注意的状态问题，Codex 不得顺手清理：
 
-1. **`cognote-agent-artifacts/` 已移入仓库根目录**：原设计是"仓库外归档，不得删除、修改、复制回仓库或提交"。现已成为仓库内未跟踪目录，且 `.gitignore` 未覆盖。需负责人决策：加入 `.gitignore` 忽略，还是移回仓库外，还是保持现状。任何 Git 写操作前必须先解决此点，避免白名单暂存时误纳。
+1. **`cognote-agent-artifacts/` 位于仓库根目录且未跟踪**：不得删除、修改或提交。Git 写操作必须继续使用精确文件白名单，避免误纳；是否移回仓库外或加入精确忽略规则仍需负责人单独决策。
 2. **`pubspec.lock` 有未提交改动**（117+/109-，近期 `flutter pub get` 重排）。需确认是否提交、还是 revert 回 CNG-109 基线。
-3. **`origin/HEAD → origin/feat/cng-100` 异常**：远程默认分支未指向 master。推送前需用代理 `ls-remote` 核验真实远程 master hash。
+3. **Mnora 品牌变更仍在 Draft PR #1**：`codex/mnora-brand` 已推送，提交 `56c603e` 尚未进入 `master`。新任务开始前必须核验 PR 状态，不得假定已合并。
 4. **CNG-109 缺规格冻结报告/handoff**：三个 commit 已直接落在 master，未见《CNG-109 规格冻结报告》或 handoff 文档，需负责人确认 CNG-109 是否已验收关闭，还是仍需补冻结报告。
 5. **E5/O3 证据设备等级**：最新证据 `cng109-20260803T131234Z-7ba0` 的 `run-metadata.json` 显示 `serial=emulator-5554, qemu=1, api=35`，即 API 35 **模拟器**，非物理真机。战略规划要求"真实 Android API 35 E5/O3 执行"，需确认模拟器证据是否满足验收，还是必须补真机证据。
+6. **Android APK 构建需显式选择 JDK**：PATH 默认仍指向 Java 11，但本机已有 `D:\java——JDK`（Temurin JDK 25）。2026-08-14 已仅对命令设置 `JAVA_HOME`，补齐官方构建缓存并完成 `android\gradlew.bat assembleDebug --no-daemon --console=plain`（exit 0）；新 APK 为 178,861,555 bytes，`aapt dump badging` 确认 package=`com.cognote.cognote.cng109`、`targetSdkVersion=36`、label=`Mnora · 见藏`。不得改全局 Java 配置，也不得把 PATH 默认值误报成代码编译失败。
 
 ---
 
@@ -369,10 +382,12 @@ C. 操作系统级 force-stop（adb am force-stop / 飞行模式）
 
 目标：用户可放心记录，系统不因离线、重启、强杀丢内容。
 
-1. **完成 CNG-109 收尾**：确认 E5/O3 证据等级是否达标（见第 10 节风险点 5），必要时补真机证据；补《CNG-109 规格冻结报告》或明确验收关闭。
-2. **完成 CNG-110**：只采集最小产品验证事件，不采集图片、原文、私密内容、EXIF、完整 AI 输出。
-3. **补齐创建记录 UI 入口**：文字和图片本地创建入口（当前创建能力在 Application/Repository 层，缺完整生产 UI 闭环）。
-4. **更新 README 与能力矩阵**：使项目描述与真实代码一致（当前 README 仍写"阶段 0"）。
+1. **确认 Draft PR #1 的处理**：先审查 Mnora 品牌变更，合并后再从最新 `master` 建立功能分支。
+2. **完成 CNG-109 收尾**：确认 E5/O3 证据等级是否达标，必要时补真机证据；补《CNG-109 规格冻结报告》或明确验收关闭。
+3. **完成 CNG-111**：补齐文字和图片的生产创建入口，形成飞行模式下可实际操作的本地记录闭环。
+4. **完成 CNG-112**：支持本地编辑，并冻结 FTS、Outbox、时间字段和删除状态的一致性语义。
+5. **处理 CNG-107A**：先完成 `private_local` 威胁模型与存储方案 spike；在独立加密边界成立前不得暴露伪私密入口。
+6. **完成 CNG-110**：只采集最小产品验证事件，不采集图片、原文、私密内容、EXIF、完整 AI 输出；阶段 1 仅定义本地可测试 sink，不引入远程发送。
 
 本阶段不扩展：云 AI、同步、知识图谱、推荐、个体画像。
 
@@ -414,23 +429,27 @@ C. 操作系统级 force-stop（adb am force-stop / 飞行模式）
 
 严格按顺序阅读（阶段 0 冻结的权威规格）：
 
-1. `README.md`（注意：定位部分有效，状态描述已过时）
-2. `docs/open-decisions.md`
-3. `docs/product/prd.md`
-4. `docs/product/user-flows.md`
-5. `docs/product/privacy-modes.md`
-6. `docs/architecture/overview.md`
-7. `docs/architecture/data-model.md`
-8. `docs/architecture/state-machines.md`
-9. `docs/architecture/privacy-data-flow.md`
-10. `docs/architecture/ai-provenance.md`
-11. `docs/architecture/sync.md`（MVP-B 未来协议，勿扩大当前任务）
-12. `docs/architecture/adr/001`～`012`
-13. `docs/roadmap/mvp-tasks.md`
-14. `docs/quality/spec-consistency-report.md`
-15. `docs/quality/mvp-metrics.md`
-16. `docs/quality/ai-evaluation-plan.md`
-17. `docs/api/openapi-outline.yaml`
+1. `README.md`
+2. `docs/README.md`
+3. `docs/product/brand.md`
+4. `docs/product/strategy.md`
+5. `docs/roadmap/current-plan.md`
+6. `docs/open-decisions.md`
+7. `docs/product/prd.md`
+8. `docs/product/user-flows.md`
+9. `docs/product/privacy-modes.md`
+10. `docs/architecture/overview.md`
+11. `docs/architecture/data-model.md`
+12. `docs/architecture/state-machines.md`
+13. `docs/architecture/privacy-data-flow.md`
+14. `docs/architecture/ai-provenance.md`
+15. `docs/architecture/sync.md`（MVP-B 未来协议，勿扩大当前任务）
+16. `docs/architecture/adr/001`～`012`
+17. `docs/roadmap/mvp-tasks.md`
+18. `docs/quality/spec-consistency-report.md`
+19. `docs/quality/mvp-metrics.md`
+20. `docs/quality/ai-evaluation-plan.md`
+21. `docs/api/openapi-outline.yaml`
 
 ---
 
@@ -480,19 +499,47 @@ lib/src/presentation/observation_search_page.dart
 只读核验，不做任何 Git 写操作
 ```
 
-1. 重新核验 `git status --short --untracked-files=all`、`git rev-parse HEAD/master/origin/master`、`git log --oneline -15`、`git worktree list`。
-2. 用代理核验实时远程：`git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 ls-remote origin refs/heads/master refs/heads/feat/cng-100`。
-3. 与负责人对齐第 10 节五个风险点（尤其 cognote-agent-artifacts 与 pubspec.lock 的处理、CNG-109 是否验收关闭）。
-4. 若 CNG-109 已关闭，下一任务为 CNG-110（最小埋点）或 CNG-107A（private_local 加密），以负责人冻结的规格为准。
-5. 任何 Git 写操作（add/commit/merge/push）必须等待负责人单独授权。
+1. 重新核验 `git status --short --untracked-files=all`、当前分支、`HEAD/master/origin/master`、`git log --oneline -15`、`git worktree list`。
+2. 核验 GitHub 仓库为 `AurvalLab/Cognote`、默认分支为 `master`，并读取 Draft PR #1 的实时状态。
+3. 用代理核验实时远程：`git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=http://127.0.0.1:7897 ls-remote origin refs/heads/master refs/heads/codex/mnora-brand refs/heads/feat/cng-100`。
+4. 确认 `git config --local user.name` 为 `Aurval`，`user.email` 为 `201062279+AurvalLab@users.noreply.github.com`。
+5. 明确排除 `pubspec.lock` 与 `cognote-agent-artifacts/`，除非负责人针对其中某项另行授权。
+6. 按 `docs/roadmap/current-plan.md` 选择单一下一目标；当前推荐先处理 PR #1 与 CNG-109 验收，再进入 CNG-111。
+7. 任何 Git 写操作（add/commit/merge/push）必须等待负责人单独授权。
 
 ---
 
 ## 17. 交接复核清单
 
 - [ ] 已读取本文件
+- [ ] 已读取 `docs/product/brand.md`、`docs/product/strategy.md`、`docs/roadmap/current-plan.md`
 - [ ] 已实时核验 branch、HEAD、master、origin/master、worktree
 - [ ] 已用代理核验真实远程 master hash
-- [ ] 已与负责人对齐 cognote-agent-artifacts / pubspec.lock / origin-HEAD / CNG-109 验收 / E5-O3 设备等级
+- [ ] 已核验 GitHub 账号、远程 URL、默认分支、Draft PR #1 与仓库级 Git 作者身份
+- [ ] 已与负责人对齐 cognote-agent-artifacts / pubspec.lock / CNG-109 验收 / E5-O3 设备等级 / 构建 JDK 选择
 - [ ] 已确认当前授权边界（只读审计为默认态）
 - [ ] 未执行任何未授权 Git 写操作
+
+---
+
+## 18. 新会话标准开场白
+
+每次建立新的项目会话，复制以下文本作为第一条消息；日期、PR 编号和目标任务发生变化时，先更新本节再交接。
+
+```text
+阅读 `docs/handoff/codex-handoff-2026-08-14.md`、`docs/roadmap/current-plan.md`、`docs/product/brand.md` 和 `docs/product/strategy.md`，接管 Mnora · 见藏项目。
+
+先执行只读核验：检查当前 Git 分支、HEAD、工作区、worktree、远程 URL、GitHub 默认分支和 Draft PR 状态，并将结果与交接文件对照。不要直接相信快照，也不要执行任何 Git 写操作。
+
+特别保留并排除既有的 `pubspec.lock` 未提交改动与 `cognote-agent-artifacts/` 未跟踪目录；不得删除、恢复、移动、暂存或提交它们，除非我单独授权。
+
+确认当前公开产品名为 `Mnora · 见藏`，GitHub 账号为 `AurvalLab`，仓库级 Git 作者应为 `Aurval <201062279+AurvalLab@users.noreply.github.com>`。历史 `Cognote` 仅作为暂未迁移的技术标识与历史记录保留。
+
+完成核验后，先用中文向我汇报：当前真实状态、与交接文件的差异、主要风险，以及你建议推进的唯一下一任务。得到我的确认后，再进入规划或实现。
+```
+
+若新会话已经明确指定任务，可在末尾追加：
+
+```text
+本次唯一目标：<任务编号与一句话目标>。除完成该目标所必需的正常实现与验证外，不扩大范围。
+```

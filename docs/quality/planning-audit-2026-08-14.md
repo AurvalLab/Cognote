@@ -62,7 +62,8 @@
 - 新增/修改文档的相对链接检查：通过；
 - Markdown 结构、任务编号和 `git diff --check`：通过；
 - `flutter test --no-pub --concurrency=1 -r compact`：首次运行被 `sqlite3 3.5.1` 原生库下载超时阻塞；依赖随后正常就绪，重跑完整 Dart/Widget 套件通过，共 179 个测试。未复制归档目录中的缓存 DLL绕过边界。
-- `flutter build apk --debug --no-pub`：Android 资源 XML 已单独解析通过，但 Gradle 在编译前检测到当前 Java 11，要求 Java 17+，因此 APK 构建未完成；该项记录为本机 JDK 环境阻塞。
+- 初次执行 `flutter build apk --debug --no-pub` 时，PATH 中的 Java 11 被 Gradle 拒绝，证明默认命令环境不足，但不代表项目编译失败。
+- 后续核验发现本机已有 Temurin JDK 25。仅对构建命令设置 `JAVA_HOME=D:\java——JDK`，补齐官方 Gradle/Android/Flutter 构建缓存后，执行 `android\gradlew.bat assembleDebug --no-daemon --console=plain` 成功（exit 0）。新 APK 为 `build/app/outputs/apk/debug/app-debug.apk`，178,861,555 bytes；`aapt dump badging` 确认 package 为 `com.cognote.cognote.cng109`、`targetSdkVersion=36`、application label 为 `Mnora · 见藏`。未修改全局 Java 配置或 `pubspec.lock`。
 
 ## 7. 审计边界
 
