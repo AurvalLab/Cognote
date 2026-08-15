@@ -66,6 +66,35 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await closeFuture;
   });
+
+  testWidgets('creates text through the production timeline entry', (
+    tester,
+  ) async {
+    final application = await _createApplication(root);
+
+    await tester.pumpWidget(
+      CognoteApp(application: application, closeApplicationOnDispose: false),
+    );
+    await _pumpUntilFound(tester, find.text('还没有本地记录'));
+
+    await tester.tap(find.byKey(const Key('create_observation')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('create_text_input')),
+      '从生产入口创建',
+    );
+    await tester.tap(find.byKey(const Key('save_observation')));
+    await tester.pumpAndSettle();
+    await _pumpUntilFound(tester, find.text('从生产入口创建'));
+
+    expect(find.byType(TimelinePage), findsOneWidget);
+    expect(find.text('从生产入口创建'), findsOneWidget);
+    final closeFuture = application.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(const Duration(milliseconds: 50));
+    await closeFuture;
+  });
 }
 
 Future<CognoteApplication> _createApplication(Directory root) =>

@@ -12,14 +12,17 @@ import '../observation/application/create_image_observation.dart';
 import '../observation/application/get_observation_detail.dart';
 import '../observation/application/watch_observation_timeline.dart';
 import '../observation/application/watch_observation_search.dart';
+import '../observation/data/file_image_source.dart';
 import '../observation/data/drift_observation_repository.dart';
 import '../observation/data/file_asset_storage.dart';
 import '../observation/data/uuid_v7_observation_id_generator.dart';
 import '../observation/domain/observation.dart';
 import '../observation/domain/observation_detail.dart';
 import '../observation/domain/observation_id_generator.dart';
+import '../observation/domain/image_source.dart';
 import '../observation/domain/observation_mutation_outcome.dart';
 import '../observation/domain/observation_outbox_mutation_repository.dart';
+import '../observation/domain/observation_repository.dart';
 import '../observation/domain/observation_search_result.dart';
 
 import '../outbox/data/drift_outbox_query_repository.dart';
@@ -150,6 +153,36 @@ class CognoteApplication {
   Future<Observation> createTextObservation(
     CreateTextObservationCommand command,
   ) => _createTextObservation.execute(command);
+
+  Future<PreparedImageObservationCommand>
+  prepareImageObservationFromTemporaryFile({
+    required File file,
+    required String? declaredMimeType,
+    String? caption,
+    required int timezoneOffset,
+    DateTime? capturedAtUtc,
+  }) async {
+    final source = FileImageSource(
+      file: file,
+      declaredMimeType: declaredMimeType,
+      ownership: ImageSourceOwnership.appOwnedTemporary,
+    );
+    try {
+      return await createImageObservation.prepare(
+        source: source,
+        caption: caption,
+        capturedAtUtc: capturedAtUtc,
+        timezoneOffset: timezoneOffset,
+      );
+    } catch (_) {
+      await source.cleanup();
+      rethrow;
+    }
+  }
+
+  Future<ImageObservationAggregate> createPreparedImageObservation(
+    PreparedImageObservationCommand command,
+  ) => createImageObservation.execute(command);
 
   Stream<List<Observation>> watchTimeline() => _watchObservationTimeline();
 

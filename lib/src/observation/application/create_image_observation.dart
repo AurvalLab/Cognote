@@ -130,10 +130,6 @@ class CreateImageObservation {
             .toList(),
       );
       final detected = _detect(bytes);
-      if (source.declaredMimeType != null &&
-          source.declaredMimeType!.toLowerCase() != detected.mimeType) {
-        throw UnsupportedImageException();
-      }
       validateImageDimensions(width: detected.width, height: detected.height);
       final preparedUri = _assetStorage.preparedUri(
         assetId,

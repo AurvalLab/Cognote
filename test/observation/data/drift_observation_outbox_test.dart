@@ -56,6 +56,46 @@ void main() {
   });
 
   test(
+    'text operation accepts timestamps finer than SQLite precision',
+    () async {
+      final createdAt = _time.add(
+        const Duration(milliseconds: 654, microseconds: 321),
+      );
+      final observation = _textObservation(
+        ownerId,
+        deviceId,
+        createdAt: createdAt,
+      );
+      final operation = _operation(
+        operationId: _operationId,
+        ownerId: ownerId,
+        deviceId: deviceId,
+        aggregateId: observation.id,
+        kind: 'observation_upsert',
+        createdAt: createdAt,
+      );
+
+      await repository.createTextWithOutbox(
+        observation: observation,
+        operation: operation,
+      );
+      await repository.createTextWithOutbox(
+        observation: observation,
+        operation: operation,
+      );
+
+      final stored = await database
+          .select(database.outboxOperations)
+          .getSingle();
+      expect(
+        stored.createdAt.millisecondsSinceEpoch ~/
+            Duration.millisecondsPerSecond,
+        createdAt.millisecondsSinceEpoch ~/ Duration.millisecondsPerSecond,
+      );
+    },
+  );
+
+  test(
     'same operation id with different aggregate rolls back text insert',
     () async {
       final first = _textObservation(ownerId, deviceId);
@@ -556,22 +596,26 @@ Observation _textObservation(
   String ownerId,
   String deviceId, {
   String id = _observationId,
-}) => Observation(
-  id: id,
-  ownerId: ownerId,
-  inputType: ObservationInputType.text,
-  rawText: 'text',
-  capturedAt: _time,
-  timezoneOffset: 480,
-  privacyLevel: PrivacyLevel.normal,
-  cloudAiPolicy: CloudAiPolicy.localOnly,
-  syncPolicy: SyncPolicy.localOnly,
-  createdByDeviceId: deviceId,
-  createdAt: _time,
-  updatedAt: _time,
-  deletedAt: null,
-  serverRevision: null,
-);
+  DateTime? createdAt,
+}) {
+  final timestamp = createdAt ?? _time;
+  return Observation(
+    id: id,
+    ownerId: ownerId,
+    inputType: ObservationInputType.text,
+    rawText: 'text',
+    capturedAt: timestamp,
+    timezoneOffset: 480,
+    privacyLevel: PrivacyLevel.normal,
+    cloudAiPolicy: CloudAiPolicy.localOnly,
+    syncPolicy: SyncPolicy.localOnly,
+    createdByDeviceId: deviceId,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    deletedAt: null,
+    serverRevision: null,
+  );
+}
 
 ImageObservationAggregate _imageAggregate(String ownerId, String deviceId) {
   final observation = Observation(
