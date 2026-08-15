@@ -1,9 +1,10 @@
 # Mnora · 见藏当前执行计划
 
-- 快照日期：2026-08-14（Asia/Shanghai）
+- 快照日期：2026-08-15（Asia/Shanghai）
 - 当前阶段：阶段 1，本地记录闭环收尾
-- 当前基线：`master` / `d3c6f0b1fdafe8657bde6a26e360dd5773af8cd1`
-- 默认权限：允许只读审计和本次明确授权的规划文档编辑；不包含 Git 暂存、提交、合并或推送
+- 当前基线：`master` / `2d59d19efdb7ba76da09c9d558f0dd943ad50018`
+- 当前任务：CNG-111 独立审查修复与回归已完成，待 `planner_reviewer` 复审；分支 `codex/cng-111-production-create-flow`
+- 默认权限：允许 CNG-111 范围内的规划、代码、测试和交接文件编辑；不包含 Git 暂存、提交、推送、PR、Ready、合并或任何分支/worktree 清理
 
 本文件是当前状态和下一步的唯一执行源。长期战略见 `docs/product/strategy.md`，全阶段任务目录见 `docs/roadmap/mvp-tasks.md`。
 
@@ -14,7 +15,7 @@
 | 公开品牌 | 已定义 | 全称 `Mnora · 见藏`；技术标识 `cognote` 暂时保留，见品牌规范 |
 | CNG-100～108 | 已实现并提交 | 匿名身份、Drift schema、文字/图片创建用例、时间线/详情、删除恢复、FTS、Outbox 骨架 |
 | CNG-109 | **已验收关闭** | 负责人于 2026-08-14 接受 API 35 模拟器 E5/O3 证据；验收报告见 `docs/quality/cng-109-acceptance-2026-08-14.md` |
-| 生产创建 UI | 缺失 | Application/Data 层能创建，`CognoteApp` 与 `TimelinePage` 没有创建入口 |
+| 生产创建 UI | **CNG-111 已实现，审查修复待复审** | 规格见 `docs/quality/cng-111-spec-2026-08-15.md`；API 35 模拟器飞行模式生产 UI 已完成文字、系统选图、图片保存、搜索、删除和恢复闭环；独立审查提出的 4 项生命周期、错误映射与 MIME finding 已修复并通过回归 |
 | 本地编辑 | 缺失 | 详情页只读，Repository/Application 未提供编辑用例 |
 | CNG-107A | 未开始 | 当前 `PrivacyLevel` 只有 `normal`；不得展示或声称 `private_local` 已可用 |
 | CNG-110 | 未开始 | 阶段 1 无服务端；远程分析事件发送不应被偷偷引入 |
@@ -51,7 +52,9 @@
 
 ### 3.2 CNG-111：生产创建入口与本地闭环
 
-这是规划审计新增的任务，用于补上现有路线图遗漏。
+状态：**独立审查修复与回归已完成，待复审和发布**。实现前规格已冻结于 `docs/quality/cng-111-spec-2026-08-15.md`。
+
+这是规划审计新增的任务，用于补上现有路线图遗漏。唯一目标是在飞行模式下，通过生产 UI 完成文字或单图片本地创建并返回时间线，不扩大到编辑、云能力或自定义相机。
 
 范围：
 
@@ -64,7 +67,27 @@
 
 非范围：编辑既有记录、相机自定义实现、批量导入、Share Sheet、云 AI、上传、后台同步。
 
-验收：Widget 测试覆盖 happy path、空文字、图片错误、重复提交保护和返回导航；Android 端完成一轮生产 UI 闭环，不通过测试专用入口绕过页面。
+验收结论（2026-08-15）：
+
+- format 91 files / 0 changed；analyze 0 issues；完整 Dart/Widget 测试 194/194；`git diff --check` 通过；
+- Android Debug APK 构建成功，API 35 x86_64 模拟器在飞行模式下通过生产 UI 创建一条文字和一条 PNG 图片记录；
+- 系统 Storage Access Framework 选择器成功返回图片，最终数据库为 2 条 Observation、1 条 LocalAsset、2 条创建 Outbox，原图存在于应用私有目录；
+- 新建文字可搜索、可进入详情、可删除并从“已删除记录”恢复；最终 2 条记录均 active，Outbox 共 4 条；
+- 设备验收发现并修复 Drift/SQLite DateTime 以 Unix 秒持久化时的精度冲突，新增亚秒时间回归测试，未放宽超过数据库可表达精度的真实冲突；
+- 模拟器网络已恢复到验收前的飞行模式 0、Wi-Fi 1、移动数据 1。物理真机验证仍属于阶段 1 发布门禁，不由本任务冒充完成。
+
+独立审查修复（2026-08-15 16:03，Asia/Shanghai）：
+
+- 页面销毁时会清理延迟返回的新图片；替换旧图等待清理期间离页时，新旧临时文件各清理一次；
+- 图片回调被调用即把临时文件所有权转移给 Application，页面不再并发删除；文字/图片保存 in-flight 时由 `PopScope` 阻止返回；
+- picker 的 `unavailable`、`busy`、`unsupported`、`storage`、`unreadable`、`invalid_result` 与 `too_large` 均提供对应恢复指引；
+- Android Provider MIME 仅作为可空 hint：`null`、`image/jpg`、`application/octet-stream` 与错误的精确 MIME 不再抢先否决合法内容；临时文件未知类型使用中性 `.img`，支持性最终由既有 magic/decode Pipeline 判断；
+- Provider 的 MIME 查询、输入打开/读取/关闭失败明确映射为 `unreadable`；缓存目标的临时文件创建、输出打开、写入、`fd.sync` 与关闭失败明确映射为 `storage`；纯 Java I/O seam 通过实际编译执行覆盖上述失败路径与 `too_large`，不再只依赖 Kotlin 源码字符串断言；
+- format 94 files / 0 changed；analyze 0 issues；生命周期与错误提示定向测试 38/38，平台错误分类定向测试 9/9；完整 Dart/Widget 测试 211/211；Android `assembleDebug` 成功（148 tasks）；`git diff --check` 通过；
+- API 35 x86_64 模拟器覆盖安装最新 Debug APK 后，经真实 DocumentsUI 再次选择既有 PNG 并成功创建，时间线新增图片记录，picker 缓存目录为空；同一 ADB shell 在点击保存后紧接发送 BACK，最终仍成功返回时间线。由于 82 KiB 图片处理很快，设备证据不能单独证明 BACK 一定落在 busy 窗口内；确定性的 in-flight 拦截证据来自文字/图片两条延迟 Future Widget 测试；
+- 测试误触发的 CNG-111 worktree `pubspec.lock` 解析差异已在负责人精确授权下恢复到 HEAD，SHA256 为 `54C0C841A46889362F665878BB667EA89B7A2F52278A4463942F1A2614F658F7`；主工作区受保护 lock 差异未触碰。
+
+发布边界：当前改动尚未暂存、提交、推送或创建 PR；先由 `planner_reviewer` 基于最终 diff 与上述真实门禁复审，`PASS` 后仍须由负责人逐阶段单独授权 Git 操作。CNG-112 只有在 CNG-111 进入主线后才成为下一开发任务。
 
 ### 3.3 CNG-112：本地编辑与索引/Outbox 一致性
 

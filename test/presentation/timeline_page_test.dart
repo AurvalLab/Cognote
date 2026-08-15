@@ -19,6 +19,7 @@ void main() {
           onOpenObservation: (_) {},
           onOpenDeletedObservations: () {},
           onOpenSearch: () {},
+          onCreateObservation: () {},
         ),
       ),
     );
@@ -55,6 +56,7 @@ void main() {
           onOpenObservation: (value) => opened = value,
           onOpenDeletedObservations: () {},
           onOpenSearch: () {},
+          onCreateObservation: () {},
         ),
       ),
     );
@@ -71,11 +73,33 @@ void main() {
           onOpenObservation: (_) {},
           onOpenDeletedObservations: () {},
           onOpenSearch: () {},
+          onCreateObservation: () {},
         ),
       ),
     );
     await tester.pump();
     expect(find.text('读取时间线失败'), findsOneWidget);
+  });
+
+  testWidgets('timeline exposes the production creation entry', (tester) async {
+    var createCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TimelinePage(
+          timeline: Stream.value(const []),
+          onOpenObservation: (_) {},
+          onOpenDeletedObservations: () {},
+          onOpenSearch: () {},
+          onCreateObservation: () => createCalls++,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('create_observation')));
+
+    expect(createCalls, 1);
+    expect(find.text('记录此刻'), findsOneWidget);
   });
 }
 

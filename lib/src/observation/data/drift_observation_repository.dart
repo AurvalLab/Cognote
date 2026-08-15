@@ -461,7 +461,7 @@ class DriftObservationRepository
         left.createdByDeviceId == right.createdByDeviceId &&
         left.inputType == right.inputType &&
         left.rawText == right.rawText &&
-        left.capturedAt == right.capturedAt &&
+        _sameDatabaseInstant(left.capturedAt, right.capturedAt) &&
         left.timezoneOffset == right.timezoneOffset &&
         left.privacyLevel == right.privacyLevel &&
         left.cloudAiPolicy == right.cloudAiPolicy &&
@@ -639,7 +639,7 @@ class DriftObservationRepository
         existing.aggregateType != operation.aggregateType ||
         existing.aggregateId != operation.aggregateId ||
         existing.operationKind != operation.operationKind ||
-        existing.createdAt.toUtc() != operation.createdAt.toUtc()) {
+        !_sameDatabaseInstant(existing.createdAt, operation.createdAt)) {
       throw OutboxOperationConflictException();
     }
   }
@@ -663,6 +663,10 @@ class DriftObservationRepository
     );
   }
 }
+
+bool _sameDatabaseInstant(DateTime left, DateTime right) =>
+    left.millisecondsSinceEpoch ~/ Duration.millisecondsPerSecond ==
+    right.millisecondsSinceEpoch ~/ Duration.millisecondsPerSecond;
 
 String _inputTypeToDatabase(ObservationInputType value) => value.name;
 

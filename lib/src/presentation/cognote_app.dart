@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../application/cognote_application.dart';
 import '../product_identity.dart';
+import 'create_observation_page.dart';
 import 'deleted_observations_page.dart';
+import 'observation_image_picker.dart';
 import 'observation_detail_page.dart';
 import 'observation_search_page.dart';
 import 'timeline_page.dart';
@@ -12,11 +15,13 @@ import 'timeline_page.dart';
 class CognoteApp extends StatefulWidget {
   const CognoteApp({
     required this.application,
+    this.imagePicker = const AndroidObservationImagePicker(),
     this.closeApplicationOnDispose = true,
     super.key,
   });
 
   final CognoteApplication application;
+  final ObservationImagePicker imagePicker;
   final bool closeApplicationOnDispose;
 
   @override
@@ -79,6 +84,44 @@ class _CognoteAppState extends State<CognoteApp> {
                     ),
                   );
                 },
+              ),
+            ),
+          );
+        },
+        onCreateObservation: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<String>(
+              builder: (_) => CreateObservationPage(
+                imagePicker: widget.imagePicker,
+                onCreateText:
+                    ({required rawText, required timezoneOffset}) async {
+                      final command = widget.application.prepareTextObservation(
+                        rawText: rawText,
+                        timezoneOffset: timezoneOffset,
+                      );
+                      final observation = await widget.application
+                          .createTextObservation(command);
+                      return observation.id;
+                    },
+                onCreateImage:
+                    ({
+                      required image,
+                      required caption,
+                      required timezoneOffset,
+                      required onPrepared,
+                    }) async {
+                      final command = await widget.application
+                          .prepareImageObservationFromTemporaryFile(
+                            file: File(image.path),
+                            declaredMimeType: image.mimeType,
+                            caption: caption,
+                            timezoneOffset: timezoneOffset,
+                          );
+                      onPrepared();
+                      final aggregate = await widget.application
+                          .createPreparedImageObservation(command);
+                      return aggregate.observation.id;
+                    },
               ),
             ),
           );

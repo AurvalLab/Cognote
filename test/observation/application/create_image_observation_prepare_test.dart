@@ -252,38 +252,42 @@ void main() {
     );
   });
 
-  test(
-    'rejects empty, oversized, corrupt, MIME-conflicting and animated images',
-    () async {
-      final cases = <(ImageSource, Type)>[
-        (MemoryImageSource(Uint8List(0)), ImageSourceNotReadableException),
-        (
-          MemoryImageSource(Uint8List(25 * 1024 * 1024 + 1)),
-          ImageTooLargeException,
+  test('rejects empty, oversized, corrupt, and animated images', () async {
+    final cases = <(ImageSource, Type)>[
+      (MemoryImageSource(Uint8List(0)), ImageSourceNotReadableException),
+      (
+        MemoryImageSource(Uint8List(25 * 1024 * 1024 + 1)),
+        ImageTooLargeException,
+      ),
+      (
+        MemoryImageSource(Uint8List.fromList([1, 2, 3])),
+        UnsupportedImageException,
+      ),
+      (MemoryImageSource(_gif), UnsupportedImageException),
+      (MemoryImageSource(_animatedWebp), UnsupportedImageException),
+    ];
+    for (final item in cases) {
+      await expectLater(
+        useCase.prepare(
+          source: item.$1,
+          capturedAtUtc: _capturedAt,
+          timezoneOffset: 0,
         ),
-        (
-          MemoryImageSource(Uint8List.fromList([1, 2, 3])),
-          UnsupportedImageException,
-        ),
-        (
-          MemoryImageSource(_png(), declaredMimeType: 'image/jpeg'),
-          UnsupportedImageException,
-        ),
-        (MemoryImageSource(_gif), UnsupportedImageException),
-        (MemoryImageSource(_animatedWebp), UnsupportedImageException),
-      ];
-      for (final item in cases) {
-        await expectLater(
-          useCase.prepare(
-            source: item.$1,
-            capturedAtUtc: _capturedAt,
-            timezoneOffset: 0,
-          ),
-          throwsA(predicate((error) => error.runtimeType == item.$2)),
-        );
-      }
-    },
-  );
+        throwsA(predicate((error) => error.runtimeType == item.$2)),
+      );
+    }
+  });
+
+  test('detects content when the provider MIME hint is wrong', () async {
+    final command = await useCase.prepare(
+      source: MemoryImageSource(_png(), declaredMimeType: 'image/jpeg'),
+      capturedAtUtc: _capturedAt,
+      timezoneOffset: 0,
+    );
+
+    expect(command.mimeType, 'image/png');
+    expect(command.preparedUri, endsWith('.png'));
+  });
 }
 
 Uint8List _png() =>

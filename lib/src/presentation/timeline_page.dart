@@ -8,6 +8,7 @@ class TimelinePage extends StatelessWidget {
     required this.onOpenObservation,
     required this.onOpenDeletedObservations,
     required this.onOpenSearch,
+    required this.onCreateObservation,
     super.key,
   });
 
@@ -15,6 +16,7 @@ class TimelinePage extends StatelessWidget {
   final ValueChanged<String> onOpenObservation;
   final VoidCallback onOpenDeletedObservations;
   final VoidCallback onOpenSearch;
+  final VoidCallback onCreateObservation;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -32,6 +34,12 @@ class TimelinePage extends StatelessWidget {
           icon: const Icon(Icons.delete_outline),
         ),
       ],
+    ),
+    floatingActionButton: FloatingActionButton.extended(
+      key: const Key('create_observation'),
+      onPressed: onCreateObservation,
+      icon: const Icon(Icons.add),
+      label: const Text('记录此刻'),
     ),
     body: StreamBuilder<List<Observation>>(
       stream: timeline,
