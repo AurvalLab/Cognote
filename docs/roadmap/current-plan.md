@@ -2,9 +2,9 @@
 
 - 快照日期：2026-08-15（Asia/Shanghai）
 - 当前阶段：阶段 1，本地记录闭环收尾
-- 当前基线：`master` / `2d59d19efdb7ba76da09c9d558f0dd943ad50018`
-- 当前任务：CNG-111 独立审查修复与回归已完成，待 `planner_reviewer` 复审；分支 `codex/cng-111-production-create-flow`
-- 默认权限：允许 CNG-111 范围内的规划、代码、测试和交接文件编辑；不包含 Git 暂存、提交、推送、PR、Ready、合并或任何分支/worktree 清理
+- 当前基线：`master` / `e3ce10cf577b0e257963d138ec7d9ee4f426d7c7`
+- 当前任务：CNG-111 已终审 `PASS` 并通过 PR #3 合入 `master`；当前仅补齐 closeout 交接文档，下一实现任务未启动
+- 默认权限：只允许 `codex/cng-111-closeout-docs` 中三份交接/路线图文档编辑；不包含暂存、提交、推送、PR、下一任务实现或任何分支/worktree 清理
 
 本文件是当前状态和下一步的唯一执行源。长期战略见 `docs/product/strategy.md`，全阶段任务目录见 `docs/roadmap/mvp-tasks.md`。
 
@@ -15,13 +15,13 @@
 | 公开品牌 | 已定义 | 全称 `Mnora · 见藏`；技术标识 `cognote` 暂时保留，见品牌规范 |
 | CNG-100～108 | 已实现并提交 | 匿名身份、Drift schema、文字/图片创建用例、时间线/详情、删除恢复、FTS、Outbox 骨架 |
 | CNG-109 | **已验收关闭** | 负责人于 2026-08-14 接受 API 35 模拟器 E5/O3 证据；验收报告见 `docs/quality/cng-109-acceptance-2026-08-14.md` |
-| 生产创建 UI | **CNG-111 已实现，审查修复待复审** | 规格见 `docs/quality/cng-111-spec-2026-08-15.md`；API 35 模拟器飞行模式生产 UI 已完成文字、系统选图、图片保存、搜索、删除和恢复闭环；独立审查提出的 4 项生命周期、错误映射与 MIME finding 已修复并通过回归 |
+| 生产创建 UI | **CNG-111 已验收并合入** | 独立终审 `PASS`；实现提交 `ba3958d`，PR #3，merge commit `e3ce10c`；API 35 模拟器完成飞行模式文字、DocumentsUI 图片、搜索、删除和恢复闭环 |
 | 本地编辑 | 缺失 | 详情页只读，Repository/Application 未提供编辑用例 |
 | CNG-107A | 未开始 | 当前 `PrivacyLevel` 只有 `normal`；不得展示或声称 `private_local` 已可用 |
 | CNG-110 | 未开始 | 阶段 1 无服务端；远程分析事件发送不应被偷偷引入 |
 | 云 AI、账号、同步 | 不存在 | OpenAPI 和 `sync.md` 是未来契约，不是当前能力 |
 
-当前工作区还有两个不得顺手处理的既有状态：`pubspec.lock` 有未提交依赖解析差异；`cognote-agent-artifacts/` 位于仓库内且未跟踪。CNG-109 收尾不授权处理它们，也不包含 Dart package、数据库、Android applicationId 或仓库路径迁移。
+主工作区仍有不得顺手处理的既有状态：`pubspec.lock` 未提交差异，以及未跟踪的 `AGENTS.md`、`cognote-agent-artifacts/` 和旧 `docs/handoff/current.md`。本 closeout worktree 不触碰它们，也不包含 Dart package、数据库、Android applicationId 或仓库路径迁移。
 
 ## 2. 先决策，再继续交付
 
@@ -52,7 +52,7 @@
 
 ### 3.2 CNG-111：生产创建入口与本地闭环
 
-状态：**独立审查修复与回归已完成，待复审和发布**。实现前规格已冻结于 `docs/quality/cng-111-spec-2026-08-15.md`。
+状态：**已完成并关闭**。实现前规格已冻结于 `docs/quality/cng-111-spec-2026-08-15.md`；独立终审为 `PASS`，无遗留 P0～P3 finding。
 
 这是规划审计新增的任务，用于补上现有路线图遗漏。唯一目标是在飞行模式下，通过生产 UI 完成文字或单图片本地创建并返回时间线，不扩大到编辑、云能力或自定义相机。
 
@@ -87,9 +87,17 @@
 - API 35 x86_64 模拟器覆盖安装最新 Debug APK 后，经真实 DocumentsUI 再次选择既有 PNG 并成功创建，时间线新增图片记录，picker 缓存目录为空；同一 ADB shell 在点击保存后紧接发送 BACK，最终仍成功返回时间线。由于 82 KiB 图片处理很快，设备证据不能单独证明 BACK 一定落在 busy 窗口内；确定性的 in-flight 拦截证据来自文字/图片两条延迟 Future Widget 测试；
 - 测试误触发的 CNG-111 worktree `pubspec.lock` 解析差异已在负责人精确授权下恢复到 HEAD，SHA256 为 `54C0C841A46889362F665878BB667EA89B7A2F52278A4463942F1A2614F658F7`；主工作区受保护 lock 差异未触碰。
 
-发布边界：当前改动尚未暂存、提交、推送或创建 PR；先由 `planner_reviewer` 基于最终 diff 与上述真实门禁复审，`PASS` 后仍须由负责人逐阶段单独授权 Git 操作。CNG-112 只有在 CNG-111 进入主线后才成为下一开发任务。
+发布结论：21 个白名单文件以 `ba3958d` 提交并推送；Draft PR #3 经回读确认后转为 Ready，于 2026-08-15 合入 `master`，merge commit 为 `e3ce10c`。负责人要求保留 topic branch 与 worktree，未执行清理。
 
-### 3.3 CNG-112：本地编辑与索引/Outbox 一致性
+### 3.3 CNG-111A：产品体验与视觉基础
+
+状态：**计划中，未授权启动**。建议先冻结首页/时间线、创建、详情、搜索、已删除记录、关键状态和视觉基础，再让 CNG-112 在一致页面与组件体系上实现编辑。
+
+范围边界：不新增 Observation 字段、AI、同步、`private_local`、Share Sheet、语音、项目、知识图谱、推荐或个人画像；不以五个空 Tab、假数据或不可用入口制造功能感。
+
+进入条件：本 closeout 文档与独立产品体验指南改动分别审查、消除路线图重复并合入主线，再由负责人从最新远端 `master` 单独授权任务分支/worktree。
+
+### 3.4 CNG-112：本地编辑与索引/Outbox 一致性
 
 这是规划审计新增的第二个任务，用于兑现冻结 PRD 的离线编辑承诺。
 
@@ -106,7 +114,7 @@
 
 非范围：Observation 修订历史、协同编辑、冲突 UI、图片替换和 AI CardVersion 纠错；这些需要独立数据模型或后续同步协议。
 
-### 3.4 CNG-107A：`private_local` 安全边界
+### 3.5 CNG-107A：`private_local` 安全边界
 
 在任务冻结前先做威胁模型和存储方案 spike，验证 Drift/SQLite、Android Keystore、密钥轮换、备份排除、后台预览遮蔽和卸载语义。
 
@@ -117,7 +125,7 @@
 - 首次启用必须说明卸载、清除数据和设备损坏后的不可恢复风险；
 - 如果阶段 1 不暴露私密入口，可把实现移到阶段 2 的上传前置门，但必须由负责人显式改期。
 
-### 3.5 CNG-110：最小产品事件与隐私过滤
+### 3.6 CNG-110：最小产品事件与隐私过滤
 
 阶段 1 只建设可测试的事件契约、过滤器和本地 sink：
 
@@ -129,7 +137,7 @@
 
 验收：允许字段采用白名单序列化；敏感字段注入测试证明无法外泄；事件失败不影响本地记录事务。
 
-### 3.6 阶段 1 发布候选
+### 3.7 阶段 1 发布候选
 
 所有前置任务完成后执行：
 
